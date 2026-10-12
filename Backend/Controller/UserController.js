@@ -3,7 +3,10 @@ const { validateUser } = require('../validators/userValidation');
 
 exports.register = async (req, res) => {
     try {
-        const { firstname, lastname, email, password, role } = req.body;
+        const { firstname, lastname, email, password } = req.body;
+        // Never trust a role sent by the client: self-registration always creates a normal user.
+        // (Admins are promoted directly in the database.)
+        const role = 'user';
         const err = validateUser({ firstname, lastname, email, password, role });
         if (err) {
             return res.status(400).json({ message: err });

@@ -1,218 +1,116 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import InputAdornment from '@mui/material/InputAdornment';
-import GoogleIcon from '@mui/icons-material/Google';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import './SignUp.css';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
-import { 
-  Person as PersonIcon,
-  Email as EmailIcon, 
-  Lock as LockIcon, 
-  PersonAdd as SignUpIcon,
-  Login as LoginIcon,
-  School as SchoolIcon
-} from '@mui/icons-material';
+import AuthShell, { Field, PasswordInput } from './AuthShell';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+// Same rules as Backend/validators/userValidation.js
+const RULES = {
+    firstname: (v) => (v.trim().length < 2 ? 'Enter at least 2 characters.' : ''),
+    lastname: (v) => (v.trim().length < 2 ? 'Enter at least 2 characters.' : ''),
+    email: (v) => (!/^\S+@\S+\.\S+$/.test(v.trim()) ? 'Enter a valid email address.' : ''),
+    password: (v) => (v.length < 6 ? 'Use at least 6 characters.' : ''),
+};
+
+function passwordStrength(pw) {
+    let score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+    if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+    return Math.min(score, 4);
+}
+const STRENGTH_LABEL = ['Too short', 'Weak', 'Okay', 'Good', 'Strong'];
 
 function SignUp() {
-    const [firstname , setFirstname] = useState("");
-    const [lastname , setLastname] = useState("");
-    const [email , setEmail] = useState("");
-    const [password , setPassword] = useState(""); 
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [form, setForm] = useState({ firstname: '', lastname: '', email: '', password: '' });
+    const [touched, setTouched] = useState({});
+    const [serverError, setServerError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { setUser } = useAuth();
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-    
-    const validateUser = () => {
-        if (!firstname || firstname.trim().length < 2) return 'First name must be at least 2 characters.';
-        if (!lastname || lastname.trim().length < 2) return 'Last name must be at least 2 characters.';
-        if (!email || !/^\S+@\S+\.\S+$/.test(email)) return 'A valid email is required.';
-        if (!password || password.length < 6) return 'Password must be at least 6 characters.';
-        return '';
-    };
-    
-    const handleSubmit = async function(e){
+    const location = useLocation();
+    const { user, setUser } = useAuth();
+
+    const errors = useMemo(
+        () => Object.fromEntries(Object.keys(RULES).map((k) => [k, RULES[k](form[k])])),
+        [form]
+    );
+    const strength = passwordStrength(form.password);
+
+    if (user) return <Navigate to="/problems" replace />;
+
+    const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+    const blur = (k) => () => setTouched((t) => ({ ...t, [k]: true }));
+    const shown = (k) => (touched[k] ? errors[k] : '');
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
-        setSuccess("");
-        const err = validateUser();
-        if (err) {
-            setError(err);
-            return;
-        }
+        if (loading) return;
+        setServerError('');
+        setTouched({ firstname: true, lastname: true, email: true, password: true });
+        if (Object.values(errors).some(Boolean)) return;
+
+        setLoading(true);
         try {
-            const result =  await axios.post(`${BACKEND_URL}/register`,{
-                firstname : firstname,
-                lastname : lastname,
-                email : email,
-                password : password,
-                role : "user"
+            const result = await axios.post(`${BACKEND_URL}/register`, {
+                firstname: form.firstname.trim(),
+                lastname: form.lastname.trim(),
+                email: form.email.trim(),
+                password: form.password,
             }, { withCredentials: true });
             setUser(result.data.user);
-            setSuccess('Registration successful! Redirecting...');
-            setTimeout(() => navigate('/problems'), 1000);
-        } catch (error) {
-            if (error.response && error.response.data && error.response.data.message) {
-                setError(error.response.data.message);
-            } else {
-                setError('Internal Server Issue');
-            }
+            const from = location.state?.from;
+            navigate(from?.pathname ? `${from.pathname}${from.search || ''}` : '/problems', { replace: true });
+        } catch (err) {
+            const data = err.response?.data;
+            if (data?.message || data?.error) setServerError(data.message || data.error);
+            else if (!err.response) setServerError('Cannot reach the server. Check your connection and try again.');
+            else setServerError('Something went wrong. Please try again.');
+            setLoading(false);
         }
-    }
-    
+    };
+
     return (
-        <Box className="signup-bg">
-            <Box className="signup-card" component="form" onSubmit={handleSubmit}>
-                <div className="signup-header">
-                    <SchoolIcon className="signup-logo-icon" />
-                    <Typography variant="h4" className="signup-title" mb={2} fontWeight={700} align="center">
-                        Join CodeArena
-                    </Typography>
-                    <Typography variant="body1" className="signup-subtitle" align="center" color="textSecondary">
-                        Start your coding journey today
-                    </Typography>
+        <AuthShell
+            title="Create your account"
+            subtitle="Free to join. Start solving in under a minute."
+            footer={<>Already have an account? <Link to="/login" state={location.state}>Log in</Link></>}
+        >
+            <form onSubmit={handleSubmit} noValidate>
+                <div className="au-row">
+                    <Field label="First name" id="su-first" error={shown('firstname')}>
+                        <input id="su-first" autoComplete="given-name" autoFocus value={form.firstname} onChange={set('firstname')} onBlur={blur('firstname')} aria-invalid={shown('firstname') ? 'true' : undefined} />
+                    </Field>
+                    <Field label="Last name" id="su-last" error={shown('lastname')}>
+                        <input id="su-last" autoComplete="family-name" value={form.lastname} onChange={set('lastname')} onBlur={blur('lastname')} aria-invalid={shown('lastname') ? 'true' : undefined} />
+                    </Field>
                 </div>
-                
-                <TextField 
-                    label="First Name" 
-                    variant="outlined" 
-                    fullWidth 
-                    margin="normal" 
-                    value={firstname} 
-                    onChange={e => setFirstname(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <PersonIcon color="primary" />
-                            </InputAdornment>
-                        ),
-                    }}
-                    className="signup-input"
-                />
-                
-                <TextField 
-                    label="Last Name" 
-                    variant="outlined" 
-                    fullWidth 
-                    margin="normal" 
-                    value={lastname} 
-                    onChange={e => setLastname(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <PersonIcon color="primary" />
-                            </InputAdornment>
-                        ),
-                    }}
-                    className="signup-input"
-                />
-                
-                <TextField 
-                    label="Email" 
-                    type="email" 
-                    variant="outlined" 
-                    fullWidth 
-                    margin="normal" 
-                    value={email} 
-                    onChange={e => setEmail(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <EmailIcon color="primary" />
-                            </InputAdornment>
-                        ),
-                    }}
-                    className="signup-input"
-                />
-                
-                <TextField 
-                    label="Password" 
-                    type="password" 
-                    variant="outlined" 
-                    fullWidth 
-                    margin="normal" 
-                    value={password} 
-                    onChange={e => setPassword(e.target.value)}
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <LockIcon color="primary" />
-                            </InputAdornment>
-                        ),
-                    }}
-                    className="signup-input"
-                />
-                
-                <Button 
-                    variant="contained" 
-                    color="primary" 
-                    fullWidth 
-                    sx={{ 
-                        mt: 3, 
-                        mb: 2, 
-                        py: 1.5, 
-                        fontWeight: 600, 
-                        fontSize: '1.1rem',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #ffa116 0%, #ff9800 100%)',
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 8px 24px rgba(255, 161, 22, 0.3)'
-                        },
-                        transition: 'all 0.3s ease'
-                    }} 
-                    type="submit"
-                    startIcon={<SignUpIcon />}
-                >
-                    Create Account
-                </Button>
-                
-                {error && (
-                    <Box className="error-message">
-                        <Typography variant="body2" color="error" align="center">
-                            {error}
-                        </Typography>
-                    </Box>
-                )}
-                
-                {success && (
-                    <Box className="success-message">
-                        <Typography variant="body2" color="success" align="center">
-                            {success}
-                        </Typography>
-                    </Box>
-                )}
-                
-                <Typography variant="body2" align="center" className="signup-link" style={{display: 'block', marginTop: 0, padding: 0, background: 'none', boxShadow: 'none'}}>
-                    <span style={{ color: '#ffa116', fontWeight: 700, fontSize: '1.05rem', margin: 0, padding: 0, display: 'inline' }}>Already have an account?</span>
-                    <Button component={Link} to="/login" variant="outlined" size="small" style={{ marginLeft: 10, textTransform: 'none', fontWeight: 600, borderRadius: 8, padding: '2px 16px', fontSize: '1rem' }}>
-                        Login
-                    </Button>
-                </Typography>
-                
-                {/*
-                <Typography variant="body2" align="center" color="textSecondary" mt={2} mb={1}>
-                    or you can sign up with
-                </Typography>
-                <Box className="signup-socials" display="flex" justifyContent="center" gap={2} mt={1}>
-                    <GoogleIcon className="signup-social-icon" />
-                    <GitHubIcon className="signup-social-icon" />
-                    <FacebookIcon className="signup-social-icon" />
-                    <MoreHorizIcon className="signup-social-icon" />
-                </Box>
-                */}
-            </Box>
-        </Box>
+
+                <Field label="Email" id="su-email" error={shown('email')}>
+                    <input id="su-email" type="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={set('email')} onBlur={blur('email')} aria-invalid={shown('email') ? 'true' : undefined} />
+                </Field>
+
+                <Field label="Password" id="su-password" error={shown('password')}>
+                    <PasswordInput id="su-password" value={form.password} onChange={set('password')} onBlur={blur('password')} autoComplete="new-password" invalid={!!shown('password')} placeholder="At least 6 characters" />
+                    {form.password && (
+                        <div className="au-meter" aria-live="polite">
+                            <div className="au-meter-bars">
+                                {[1, 2, 3, 4].map((n) => <i key={n} className={n <= strength ? `on s${strength}` : ''} />)}
+                            </div>
+                            <span>{STRENGTH_LABEL[strength]}</span>
+                        </div>
+                    )}
+                </Field>
+
+                {serverError && <div className="au-alert" role="alert">{serverError}</div>}
+
+                <button type="submit" className="au-submit" disabled={loading}>
+                    {loading ? <><span className="au-spin" />Creating account…</> : 'Create account'}
+                </button>
+            </form>
+        </AuthShell>
     );
 }
 
