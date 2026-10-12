@@ -29,10 +29,23 @@ const allowedOrigins = [
   process.env.FRONTEND_URL_LOCAL
 ].filter(Boolean);
 
-app.use(cors({
-  origin: allowedOrigins,
+// Exact origins that may call this API (comma-separated FRONTEND_URL_EXTRA adds more, e.g. a Vercel preview).
+// FRONTEND_PREVIEW_PATTERN is an optional regex for preview deployments, for example:
+//   ^https://code-arena-.*-kuruva-radhakrishnas-projects.vercel.app$
+// Only origins matching the list or the pattern get CORS headers; anything else is still blocked.
+const extraOrigins = (process.env.FRONTEND_URL_EXTRA || '').split(',').map((s) => s.trim()).filter(Boolean);
+const previewPattern = process.env.FRONTEND_PREVIEW_PATTERN ? new RegExp(process.env.FRONTEND_PREVIEW_PATTERN) : null;
+const corsOptions = {
+  origin(origin, callback) {
+    // no Origin header = same-origin / curl / server-to-server
+    if (!origin) return callback(null, true);
+    const ok = allowedOrigins.includes(origin) || extraOrigins.includes(origin) || (previewPattern && previewPattern.test(origin));
+    return callback(null, !!ok);
+  },
   credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
 
 
 connection();
