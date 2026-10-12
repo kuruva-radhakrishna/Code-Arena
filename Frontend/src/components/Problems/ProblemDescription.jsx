@@ -1,5 +1,4 @@
-import { Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
-import ProblemSubmissions from "./ProblemSubmissions"; // create this component
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import './ProblemDescription.css';
@@ -7,97 +6,119 @@ import ReactMarkdown from 'react-markdown';
 import CircularProgress from '@mui/material/CircularProgress';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const MAX_EXAMPLES = 3;
 
-function ProblemDescription() {
+/**
+ * Renders a problem statement. ProblemView passes the problem it already
+ * loaded; when mounted on its own (route element) it fetches it itself.
+ */
+function ProblemDescription({ problem: problemProp, showHints = true }) {
     const { id } = useParams();
-    const [problem, setProblem] = useState();
-    const Navigate = useNavigate();
-    const [showHints, setShowHints] = useState(false);
-    const [hintsLoading, setHintsLoading] = useState(false);
+    const navigate = useNavigate();
+    const [fetched, setFetched] = useState();
+    const [revealedHints, setRevealedHints] = useState(0);
 
     useEffect(() => {
-        const fetchProblem = async () => {
+        if (problemProp) return undefined;
+        let cancelled = false;
+        (async () => {
             try {
-                const result = await axios.get(`${BACKEND_URL}/problems/${id}`, {
-                    withCredentials: true,
-                });
+                const result = await axios.get(`${BACKEND_URL}/problems/${id}`, { withCredentials: true });
+                if (cancelled) return;
                 if (!result.data) {
                     alert("Selected problem has been deleted.");
-                    Navigate("/problems");
+                    navigate("/problems");
                 } else {
-                    setProblem(result.data);
+                    setFetched(result.data);
                 }
-            } catch (err) {
-                alert("Problem fetch error.");
-                Navigate("/problems");
+            } catch {
+                if (!cancelled) {
+                    alert("Problem fetch error.");
+                    navigate("/problems");
+                }
             }
-        };
+        })();
+        return () => { cancelled = true; };
+    }, [id, navigate, problemProp]);
 
-        fetchProblem();
-    }, [id, Navigate]);
-    
+    // New problem (prev / next) -> hints start hidden again.
+    const problem = problemProp || fetched;
+    const problemKey = problem?._id;
+    useEffect(() => { setRevealedHints(0); }, [problemKey]);
+
     if (!problem) {
-        return <p>Loading problem...</p>;
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+                <CircularProgress size={36} />
+            </div>
+        );
     }
 
-    const handleHintsClick = () => {
-        setHintsLoading(true);
-        setTimeout(() => {
-            setShowHints(h => !h);
-            setHintsLoading(false);
-        }, 500); // Simulate loading
-    };
+    const constraints = problem.Constraints || [];
+    const hints = problem.hints || [];
+    // Only public cases are examples; fall back to the first case for old problems.
+    const publicCases = (problem.TestCases || []).filter((t) => t.isPublic !== false);
+    const examples = (publicCases.length ? publicCases : (problem.TestCases || [])).slice(0, MAX_EXAMPLES);
 
-    return ( 
+    return (
         <div className="problem-description">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px', marginBottom: '0px' }}>
-                <h1 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 700 }}>{problem.problemName}</h1>
-                <span className={`difficulty-box ${problem.difficulty?.toLowerCase()}`} style={{ fontSize: '1.05rem', padding: '6px 20px' }}>{problem.difficulty}</span>
+            <div className="pd-title-row">
+                <h1>{problem.problemName}</h1>
+                <span className={`difficulty-box ${problem.difficulty?.toLowerCase()}`}>{problem.difficulty}</span>
             </div>
+
             {problem.topics && problem.topics.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px', marginTop: '12px' }}>
-                    {problem.topics.map((topic, i) => (
-                        <span key={i} className="topic-tag" style={{ fontSize: '0.98rem', padding: '5px 14px' }}>{topic}</span>
+                <div className="pd-topics">
+                    {problem.topics.map((topic) => (
+                        <span key={topic} className="topic-tag">{topic}</span>
                     ))}
                 </div>
             )}
-            <ReactMarkdown>{problem.problemDescription}</ReactMarkdown>
-            <h2>Constrains</h2>
-            <ul>
-                {problem.Constraints.map((c)=>{
-                    return <li>{c}</li>
-                })}
-            </ul>
 
-            <h2>Sample Input</h2>
-            <p>{problem.TestCases[0].input}</p>
-            <h2>Sample Output</h2>
-            <p>{problem.TestCases[0].output}</p>
+            <div className="pd-statement">
+                <ReactMarkdown>{problem.problemDescription}</ReactMarkdown>
+            </div>
 
-            {problem.hints && problem.hints.length > 0 && (
-                <div style={{ marginTop: 24 }}>
-                    <button
-                        onClick={handleHintsClick}
-                        className="ai-review-btn"
-                        disabled={hintsLoading}
-                        style={{ marginBottom: 12 }}
-                    >
-                        {hintsLoading ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <CircularProgress size={18} style={{ color: '#fff' }} />
-                                Loading...
-                            </span>
-                        ) : showHints ? 'Hide Hints' : 'View Hints'}
-                    </button>
-                    {showHints && (
+            {examples.map((ex, i) => (
+                <div className="pd-example" key={i}>
+                    <h3>Example {i + 1}</h3>
+                    <div className="pd-io">
                         <div>
-                            <h2>Hints</h2>
-                            <ul>
-                                {problem.hints.map((h, i) => (
-                                    <li key={i}>{h}</li>
-                                ))}
-                            </ul>
+                            <span className="pd-io-label">Input</span>
+                            <pre>{ex.input}</pre>
                         </div>
+                        <div>
+                            <span className="pd-io-label">Output</span>
+                            <pre>{ex.output}</pre>
+                        </div>
+                    </div>
+                </div>
+            ))}
+
+            {constraints.length > 0 && (
+                <>
+                    <h2>Constraints</h2>
+                    <ul>
+                        {constraints.map((c, i) => <li key={i}>{c}</li>)}
+                    </ul>
+                </>
+            )}
+
+            {showHints && hints.length > 0 && (
+                <div className="pd-hints">
+                    <h2>Hints</h2>
+                    {hints.slice(0, revealedHints).map((h, i) => (
+                        <div className="pd-hint" key={i}>
+                            <strong>Hint {i + 1}</strong>
+                            <span>{h}</span>
+                        </div>
+                    ))}
+                    {revealedHints < hints.length ? (
+                        <button className="pd-hint-btn" onClick={() => setRevealedHints((n) => n + 1)}>
+                            {revealedHints === 0 ? 'Show a hint' : `Show hint ${revealedHints + 1} of ${hints.length}`}
+                        </button>
+                    ) : (
+                        <button className="pd-hint-btn secondary" onClick={() => setRevealedHints(0)}>Hide hints</button>
                     )}
                 </div>
             )}

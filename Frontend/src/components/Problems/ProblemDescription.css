@@ -48,3 +48,88 @@
     border-radius: 8px;
   }
 } 
+/* ───────── v2: statement layout used inside the problem page ───────── */
+.pd-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.problem-description .pd-title-row h1 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.pd-title-row .difficulty-box { font-size: 0.85rem; padding: 5px 16px; margin: 0; }
+
+.pd-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+.pd-topics .topic-tag { font-size: 0.85rem; padding: 4px 12px; margin: 0; }
+
+.pd-statement { margin-bottom: 20px; }
+.pd-statement > :first-child { margin-top: 0; }
+
+.problem-description h2 { font-size: 1.15rem; margin: 24px 0 10px; }
+.problem-description h3 { font-size: 1rem; margin: 18px 0 8px; }
+
+.pd-example { margin-bottom: 8px; }
+.pd-io {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.pd-io-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.problem-description .pd-io pre {
+  margin: 0;
+  padding: 10px 12px;
+  background: #f5f7fa;
+  border: 1px solid #e9edf3;
+  color: #1f2937;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pd-hints { margin-top: 8px; }
+.pd-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  background: #fff9e8;
+  border-left: 3px solid #ffa116;
+  border-radius: 6px;
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+.pv2 .pd-hint-btn {
+  margin: 4px 0 0;
+  padding: 7px 16px;
+  background: #fff;
+  color: #8a5300;
+  border: 1.5px solid #ffa116;
+  font-weight: 600;
+}
+.pv2 .pd-hint-btn:hover:not(:disabled) { background: #fff3da; }
+.pv2 .pd-hint-btn.secondary { color: #6b7280; border-color: #d1d5db; }
+
+@media (max-width: 600px) {
+  .pd-io { grid-template-columns: 1fr; }
+}

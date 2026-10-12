@@ -85,6 +85,8 @@ const ProblemSchema = new mongoose.Schema({
                 "probability",
                 "combinatorics",
                 "implementation",
+                "prefix sum",
+                "hashing",
                 "simulation",
                 "other"
             ]

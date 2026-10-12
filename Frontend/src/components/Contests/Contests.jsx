@@ -1,161 +1,167 @@
 import axios from "axios";
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import "./Contests.css";
+import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
+import "./ContestList.css";
 import { useAuth } from "../../contexts/AuthContext";
 import CircularProgress from '@mui/material/CircularProgress';
+import { formatCountdown } from '../../utils/countdown';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const PAST_PREVIEW = 6;
+
+const formatWhen = (start, end) => {
+    const s = new Date(start), e = new Date(end);
+    const day = s.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    const t = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${day} · ${t(s)} – ${t(e)}`;
+};
+
+const formatDuration = (start, end) => {
+    const mins = Math.round((new Date(end) - new Date(start)) / 60000);
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h ? (m ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+};
+
+const STATUS = {
+    live: { label: 'Live', cta: 'Enter contest →' },
+    upcoming: { label: 'Upcoming', cta: 'View details →' },
+    past: { label: 'Ended', cta: 'View results →' },
+};
+
+function ContestCard({ contest, status, now }) {
+    const start = new Date(contest.startTime), end = new Date(contest.endTime);
+    const problemCount = contest.problems?.length || 0;
+    const clock = status === 'live'
+        ? { label: 'Ends in', value: formatCountdown(end - now) }
+        : status === 'upcoming'
+            ? { label: 'Starts in', value: formatCountdown(start - now) }
+            : { label: 'Ended', value: end.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
+
+    return (
+        <article className={`cl-card cl-${status}`}>
+            <div className="cl-top">
+                <span className={`cl-status cl-status-${status}`}>
+                    {status === 'live' && <i className="cl-dot" />}{STATUS[status].label}
+                </span>
+                <span className="cl-meta">{problemCount} problem{problemCount === 1 ? '' : 's'} · {formatDuration(contest.startTime, contest.endTime)}</span>
+            </div>
+            <h3 className="cl-title">
+                <Link to={`/contests/${contest._id}`}>{contest.contestTitle}</Link>
+            </h3>
+            <p className="cl-when">{formatWhen(contest.startTime, contest.endTime)}</p>
+            <div className="cl-bottom">
+                <div className="cl-clock">
+                    <small>{clock.label}</small>
+                    <strong className={status === 'past' ? 'cl-clock-past' : ''}>{clock.value}</strong>
+                </div>
+                <Link to={`/contests/${contest._id}`} className={`cl-cta cl-cta-${status}`}>{STATUS[status].cta}</Link>
+            </div>
+        </article>
+    );
+}
 
 function Contests() {
     const [contests, setContests] = useState([]);
-    const [now, setNow] = useState(new Date());
-    const { id } = useParams();
-    const { user } = useAuth();
+    const [now, setNow] = useState(Date.now());
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [filter, setFilter] = useState('all'); // all | live | upcoming | past
+    const [showAllPast, setShowAllPast] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
+        let cancelled = false;
+        (async () => {
             try {
-                const result = await axios.get(`${BACKEND_URL}/contests`, {
-                    withCredentials: true,
-                });
-                setContests(result.data);
-            } catch (error) {
+                const result = await axios.get(`${BACKEND_URL}/contests`, { withCredentials: true });
+                if (!cancelled) setContests(Array.isArray(result.data) ? result.data : []);
+            } catch {
+                if (!cancelled) setError(true);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
-        };
-        fetchData();
-    }, [id]);
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setNow(new Date());
-        }, 1000);
+        const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    const formatDateTime = (dateStr) => {
-        const date = new Date(dateStr);
+    const groups = useMemo(() => {
+        const t = (c, k) => new Date(c[k]).getTime();
         return {
-            date: date.toLocaleDateString('en-CA'),
-            time: date.toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit',
-            }),
+            live: contests.filter((c) => now >= t(c, 'startTime') && now < t(c, 'endTime')).sort((a, b) => t(a, 'endTime') - t(b, 'endTime')),
+            upcoming: contests.filter((c) => now < t(c, 'startTime')).sort((a, b) => t(a, 'startTime') - t(b, 'startTime')),
+            past: contests.filter((c) => now >= t(c, 'endTime')).sort((a, b) => t(b, 'endTime') - t(a, 'endTime')),
         };
+    }, [contests, now]);
+
+    const tabs = [
+        { id: 'all', label: 'All', count: contests.length },
+        { id: 'live', label: 'Live', count: groups.live.length },
+        { id: 'upcoming', label: 'Upcoming', count: groups.upcoming.length },
+        { id: 'past', label: 'Past', count: groups.past.length },
+    ];
+
+    const section = (key, title, hint) => {
+        if (filter !== 'all' && filter !== key) return null;
+        let list = groups[key];
+        if (!list.length) return null;
+        const trimmed = key === 'past' && filter === 'all' && !showAllPast && list.length > PAST_PREVIEW;
+        if (trimmed) list = list.slice(0, PAST_PREVIEW);
+        return (
+            <section className="cl-section" key={key}>
+                <div className="cl-section-head">
+                    <h2>{title}</h2>
+                    <span>{hint}</span>
+                </div>
+                <div className="cl-grid">
+                    {list.map((c) => <ContestCard key={c._id} contest={c} status={key} now={now} />)}
+                </div>
+                {trimmed && (
+                    <button className="cl-more" onClick={() => setShowAllPast(true)}>Show all {groups.past.length} past contests</button>
+                )}
+            </section>
+        );
     };
-
-    const getDuration = (start, end) => {
-        const durationMs = new Date(end) - new Date(start);
-        const hours = Math.floor(durationMs / (1000 * 60 * 60));
-        const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-        return `${hours}h ${minutes}m`;
-    };
-
-    const getCountdown = (start, end) => {
-        const now = new Date();
-        const startTime = new Date(start);
-        const endTime = new Date(end);
-
-        let target, status;
-
-        if (now < startTime) {
-            target = startTime;
-            status = "Starts in";
-        } else if (now >= startTime && now < endTime) {
-            target = endTime;
-            status = "Ends in";
-        } else {
-            return { text: "Contest Over", status: "Over" };
-        }
-
-        const diff = target - now;
-
-        const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
-        const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-        const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
-
-        return { text: `${hours}:${minutes}:${seconds}`, status };
-    };
-
-    // Separate contests
-    const present = contests.filter(contest => {
-        const start = new Date(contest.startTime);
-        const end = new Date(contest.endTime);
-        return now >= start && now < end;
-    });
-    const future = contests.filter(contest => {
-        const start = new Date(contest.startTime);
-        return now < start;
-    });
-    const past = contests.filter(contest => {
-        const end = new Date(contest.endTime);
-        return now >= end;
-    });
-
-    const renderTable = (data, label) => (
-        data.length === 0 ? null : (
-            <div className="contest-category">
-                <h2>{label}</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>S.No</th>
-                            <th>Contest Name</th>
-                            <th>Date & Time</th>
-                            <th>Duration</th>
-                            <th>Countdown</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.map((contest, index) => {
-                            const { date, time } = formatDateTime(contest.startTime);
-                            const duration = getDuration(contest.startTime, contest.endTime);
-                            const countdown = getCountdown(contest.startTime, contest.endTime);
-                            return (
-                                <tr key={contest._id || index}>
-                                    <td>{index + 1}</td>
-                                    <td>
-                                        <Link to={`/contests/${contest._id}`} className="contest-title-link">{contest.contestTitle}</Link>
-                                    </td>
-                                    <td>{date} at {time}</td>
-                                    <td>{duration}</td>
-                                    <td>
-                                        {countdown.status !== "Over" ? `${countdown.status}: ${countdown.text}` : countdown.text}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        )
-    );
-
-    const noContests = present.length === 0 && future.length === 0 && past.length === 0;
 
     return (
-        <div className="contest-view">
-            {loading && (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
-                    <CircularProgress size={60} thickness={5} />
+        <div className="cl">
+            <header className="cl-header">
+                <div>
+                    <h1>Contests</h1>
+                    <p>Compete against other coders in timed rounds and climb the leaderboard.</p>
                 </div>
-            )}
-            {!loading && user && user.role === 'admin' && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
-                    <Link to="/contests/new" className="create-contest-btn">Create Contest</Link>
+                {user && user.role === 'admin' && (
+                    <Link to="/contests/new" className="cl-create">+ Create contest</Link>
+                )}
+            </header>
+
+            {loading ? (
+                <div className="cl-center"><CircularProgress size={48} thickness={5} /></div>
+            ) : error ? (
+                <div className="cl-empty">Could not load contests. Please try again later.</div>
+            ) : contests.length === 0 ? (
+                <div className="cl-empty">
+                    <div className="cl-empty-icon" aria-hidden="true">🏆</div>
+                    <strong>No contests yet</strong>
+                    <p>Check back soon{user?.role === 'admin' ? ' or create the first one.' : '.'}</p>
                 </div>
-            )}
-            {!loading && noContests ? (
-                <div className="no-contests">No contests found.</div>
-            ) : !loading && (
+            ) : (
                 <>
-                    {renderTable(present, "Ongoing Contests")}
-                    {renderTable(future, "Upcoming Contests")}
-                    {renderTable(past, "Past Contests")}
+                    <div className="cl-tabs" role="tablist">
+                        {tabs.map((t) => (
+                            <button key={t.id} role="tab" aria-selected={filter === t.id} className={`cl-tab${filter === t.id ? ' active' : ''}`} onClick={() => setFilter(t.id)}>
+                                {t.label}<span>{t.count}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {section('live', 'Live now', 'Running right now')}
+                    {section('upcoming', 'Upcoming', 'Get ready')}
+                    {section('past', 'Past contests', 'Results and leaderboards')}
+                    {groups[filter]?.length === 0 && <div className="cl-empty">No {filter} contests.</div>}
                 </>
             )}
         </div>

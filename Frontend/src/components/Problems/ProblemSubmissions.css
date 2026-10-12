@@ -73,3 +73,33 @@
     font-size: 0.93rem;
   }
 } 
+/* v2: lives inside the problem page's left panel */
+.pv2 .problem-submissions {
+  margin-top: 0 !important;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.ps-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ps-head h3 { margin: 0; font-size: 1.1rem; }
+.pv2 .ps-refresh {
+  margin: 0; padding: 4px 12px; background: transparent; color: #6b7280;
+  border: 1px solid #e5e7eb; font-size: 0.8rem;
+}
+.ps-scroll { overflow-x: auto; }
+.ps-verdict {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ps-ok   { background: #e6f4ea; color: #1e7e34; }
+.ps-bad  { background: #fdeded; color: #c62828; }
+.ps-warn { background: #fff4e0; color: #b36b00; }
+.pv2 .view-code-link { padding: 3px 12px; font-size: 0.88rem; color: #222; }
+.pv2 .view-code-link:hover { text-decoration: none; }

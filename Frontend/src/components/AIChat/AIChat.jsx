@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import CircularProgress from '@mui/material/CircularProgress';
 import SendIcon from '@mui/icons-material/Send';
@@ -15,6 +16,37 @@ import './AIChat.css';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+const welcomeText = (user) =>
+  `Hi ${user?.firstname || 'there'}! I can explain algorithms, review or debug your code, and help you prepare for interviews.
+
+Ask a question below or pick a starter.`;
+
+const MOBILE_BREAKPOINT = 600;
+const EDGE = 16; // gap kept between the window and the viewport edge
+
+// Size/position that always fits the current viewport.
+const defaultLayout = () => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const width = Math.min(520, vw - EDGE * 2);
+  const height = Math.min(Math.round(vh * 0.8), 680, vh - EDGE * 2);
+  return { size: { width, height }, position: { x: vw - width - EDGE, y: vh - height - EDGE } };
+};
+
+const clampLayout = (size, position) => {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const width = Math.max(Math.min(size.width, vw - EDGE), Math.min(320, vw - EDGE));
+  const height = Math.max(Math.min(size.height, vh - EDGE), Math.min(320, vh - EDGE));
+  return {
+    size: { width, height },
+    position: {
+      x: Math.min(Math.max(0, position.x), Math.max(0, vw - width)),
+      y: Math.min(Math.max(0, position.y), Math.max(0, vh - height)),
+    },
+  };
+};
+
 const AIChat = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -23,15 +55,38 @@ const AIChat = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [size, setSize] = useState({ width: 700, height: window.innerHeight * 0.8 });
-  const [position, setPosition] = useState({ x: window.innerWidth - 750, y: window.innerHeight - 600 });
+  const [size, setSize] = useState(() => defaultLayout().size);
+  const [position, setPosition] = useState(() => defaultLayout().position);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= MOBILE_BREAKPOINT);
+  const { pathname } = useLocation();
   const messagesEndRef = useRef(null);
   const prevSize = useRef(size);
   const prevPosition = useRef(position);
+  const sizeRef = useRef(size);
+  const positionRef = useRef(position);
+  sizeRef.current = size;
+  positionRef.current = position;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Keep the window inside the viewport when the browser is resized / rotated.
+  useEffect(() => {
+    const onResize = () => {
+      setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
+      const next = clampLayout(sizeRef.current, positionRef.current);
+      setSize(next.size);
+      setPosition(next.position);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Scroll to the newest message whenever the conversation changes.
+  useEffect(() => {
+    if (open) scrollToBottom();
+  }, [messages, isLoading, open]);
 
   // Helper to get user-specific key
   const getUserKey = (base) => {
@@ -66,7 +121,7 @@ const AIChat = () => {
       {
         id: 1,
         type: 'ai',
-        content: `Hello ${user?.firstname || 'there'}! 👋 I'm your AI programming assistant. I can help you with:\n\n• **Code Review & Debugging** - Analyze your code and find issues\n• **Problem Solving** - Get hints and approaches for coding problems\n• **Algorithm Explanations** - Understand complex algorithms\n• **Best Practices** - Learn coding standards and patterns\n• **General Programming Questions** - Ask anything about programming\n\nWhat would you like help with today?`,
+        content: welcomeText(user),
         timestamp: new Date()
       }
     ]);
@@ -148,7 +203,7 @@ const AIChat = () => {
     const welcomeMessage = {
       id: Date.now(),
       type: 'ai',
-      content: `Hello ${user?.firstname || 'there'}! 👋 I'm your AI programming assistant. I can help you with:\n\n• **Code Review & Debugging** - Analyze your code and find issues\n• **Problem Solving** - Get hints and approaches for coding problems\n• **Algorithm Explanations** - Understand complex algorithms\n• **Best Practices** - Learn coding standards and patterns\n• **General Programming Questions** - Ask anything about programming\n\nWhat would you like help with today?`,
+      content: welcomeText(user),
       timestamp: new Date()
     };
     
@@ -161,13 +216,13 @@ const AIChat = () => {
   };
 
   const quickActions = [
-  "What are the most important graph algorithms to know?",
-  "How do I prepare for coding interviews?",
-  "What are common types of  problems asked in interviews?",
-  "What are common mistakes to avoid in algorithm interviews?",
-  "How to approach graph traversal questions in interviews?",
-  "Tips for optimizing space complexity in algorithms"
-];
+    "Give me a Big-O cheat sheet for common data structures",
+    "When should I use BFS vs DFS?",
+    "How do I recognise a dynamic programming problem?",
+    "Two pointers vs sliding window: when to use which?",
+    "Make me a 4-week coding interview study plan",
+    "What edge cases should I always test?",
+  ];
 
   const handleQuickAction = (action) => {
     setInputMessage(action);
@@ -198,8 +253,11 @@ const AIChat = () => {
     prevSize.current = size;
     prevPosition.current = position;
     setExpanded(true);
-    setSize({ width: window.innerWidth * 0.9, height: window.innerHeight * 0.9 });
-    setPosition({ x: window.innerWidth * 0.05, y: window.innerHeight * 0.05 });
+    // "Expanded" is a larger chat window, not full screen: capped width, centred.
+    const width = Math.min(Math.round(window.innerWidth * 0.9), 760);
+    const height = Math.round(window.innerHeight * 0.9);
+    setSize({ width, height });
+    setPosition({ x: Math.round((window.innerWidth - width) / 2), y: Math.round((window.innerHeight - height) / 2) });
   };
 
   const handleCompress = () => {
@@ -208,8 +266,10 @@ const AIChat = () => {
     setPosition(prevPosition.current);
   };
 
-  // Floating button
+  // Floating button. On problem pages the problem-specific AI Tutor tab replaces it
+  // (and it used to sit on top of the Run / Submit buttons).
   if (!open) {
+    if (pathname.startsWith('/problem/')) return null;
     return (
       <button className="ai-chat-fab" onClick={() => setOpen(true)} title="Open AI Chat">
         <ForumIcon style={{ fontSize: 32 }} />
@@ -219,14 +279,16 @@ const AIChat = () => {
 
   // Floating chat window
   return (
+    <div className="ai-chat-bounds">
     <Rnd
-      size={size}
-      position={position}
-      minWidth={400}
-      minHeight={300}
-      bounds="window"
+      size={isMobile ? { width: window.innerWidth, height: window.innerHeight } : size}
+      position={isMobile ? { x: 0, y: 0 } : position}
+      minWidth={Math.min(340, window.innerWidth - EDGE)}
+      minHeight={Math.min(320, window.innerHeight - EDGE)}
+      bounds="parent"
       dragHandleClassName="ai-chat-header"
-      enableResizing={true}
+      disableDragging={isMobile}
+      enableResizing={!isMobile}
       onResizeStop={(e, direction, ref, delta, pos) => {
         setSize({ width: ref.offsetWidth, height: ref.offsetHeight });
         setPosition(pos);
@@ -322,7 +384,7 @@ const AIChat = () => {
             <textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder={chatFull ? "You've reached the maximum chat length. Please clear the chat to continue." : "Ask me anything about programming..."}
               disabled={isLoading || chatFull}
               rows={1}
@@ -344,6 +406,7 @@ const AIChat = () => {
         </div>
       </div>
     </Rnd>
+    </div>
   );
 };
 

@@ -1,345 +1,330 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from 'axios';
-import { useAuth } from "../contexts/AuthContext";
-import { Card, CardContent, Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar, Divider, Button } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import './Profile.css';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
+import './ProfilePage.css';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+const DIFFICULTIES = ['easy', 'medium', 'hard'];
+const LANGUAGE_LABELS = { cpp: 'C++', c: 'C', java: 'Java', python: 'Python' };
 
-function formatFormalDate(dateStr) {
-    const date = new Date(dateStr);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = date.toLocaleString('en-GB', { month: 'long' });
-    const year = date.getFullYear();
-    let hour = date.getHours();
-    const minute = date.getMinutes().toString().padStart(2, '0');
-    const ampm = hour >= 12 ? 'pm' : 'am';
-    hour = hour % 12;
-    hour = hour ? hour : 12; // the hour '0' should be '12'
-    return `${day} ${month} ${year} at ${hour}:${minute} ${ampm}`;
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function timeAgo(dateStr) {
+    const t = new Date(dateStr).getTime();
+    if (Number.isNaN(t)) return '—';
+    const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (s < 60) return 'just now';
+    const units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
+    for (const [name, secs] of units) {
+        if (s >= secs) { const n = Math.floor(s / secs); return `${n} ${name}${n > 1 ? 's' : ''} ago`; }
+    }
+    return 'just now';
+}
+
+function verdictTone(verdict = '') {
+    const v = verdict.toLowerCase();
+    if (v.includes('accept')) return 'ok';
+    if (v.includes('wrong') || v.includes('error') || v.includes('runtime') || v.includes('compil')) return 'bad';
+    return 'warn';
+}
+
+function Stat({ label, value, hint }) {
+    return (
+        <div className="pf-stat" title={hint}>
+            <strong>{value}</strong>
+            <span>{label}</span>
+        </div>
+    );
+}
+
+function ProgressCard({ solvedStats, problemTotals }) {
+    const R = 44;
+    const C = 2 * Math.PI * R;
+    const by = DIFFICULTIES.map((d) => ({ d, solved: solvedStats?.[d] || 0, total: problemTotals?.[d] || 0 }));
+    const solved = by.reduce((s, x) => s + x.solved, 0);
+    const total = by.reduce((s, x) => s + x.total, 0);
+    const pct = total ? solved / total : 0;
+    return (
+        <section className="pf-card">
+            <h3>Solved problems</h3>
+            <div className="pf-progress">
+                <div className="pf-ring" role="img" aria-label={`${solved} of ${total} solved`}>
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r={R} className="pf-ring-track" />
+                        <circle cx="50" cy="50" r={R} className="pf-ring-fill" strokeDasharray={`${C * pct} ${C}`} transform="rotate(-90 50 50)" />
+                    </svg>
+                    <div className="pf-ring-label">
+                        <strong>{solved}</strong>
+                        <span>/ {total}</span>
+                    </div>
+                </div>
+                <ul className="pf-legend">
+                    {by.map(({ d, solved: s, total: t }) => (
+                        <li key={d}>
+                            <span className={`pf-diff pf-${d}`}>{cap(d)}</span>
+                            <span className="pf-legend-count">{s}<small>/{t}</small></span>
+                            <div className="pf-bar"><div className={`pf-bar-fill pf-bg-${d}`} style={{ width: `${t ? (s / t) * 100 : 0}%` }} /></div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </section>
+    );
 }
 
 function Profile() {
-    const { user } = useAuth();
-    const [profileData, setProfileData] = useState(null);
+    const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [deleteMsg, setDeleteMsg] = useState("");
+    const [failed, setFailed] = useState(false);
+    const [message, setMessage] = useState(null); // { ok, text }
+    const [tab, setTab] = useState('submissions');
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        let cancelled = false;
+        (async () => {
             try {
-                setLoading(true);
                 const res = await axios.get(`${BACKEND_URL}/api/profile/summary`, { withCredentials: true });
-                console.log(res.data);
-                setProfileData(res.data);
-            } catch (error) {
-                // handle error
+                if (!cancelled) setData(res.data);
+            } catch {
+                if (!cancelled) setFailed(true);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
-        };
-        fetchProfile();
+        })();
+        return () => { cancelled = true; };
     }, []);
 
-    // Calculate badges
-    const solvedTotal = profileData?.solvedStats?.total || 0;
-    const bestRank = profileData?.attendedContests?.length > 0 ? Math.min(...profileData.attendedContests.map(c => c.userStats?.rank || 9999)) : null;
-    const isNewUser = profileData?.user && profileData.user.createdAt && (new Date() - new Date(profileData.user.createdAt)) < 7 * 24 * 60 * 60 * 1000;
-    const has100Solved = solvedTotal >= 100;
-    if(profileData && profileData.submissionsByUser){
-        profileData.submissionsByUser.sort((s1,s2)=>s2.createdAt-s1.createdAt);
+    useEffect(() => {
+        if (!message) return undefined;
+        const id = setTimeout(() => setMessage(null), 3500);
+        return () => clearTimeout(id);
+    }, [message]);
+
+    const submissions = useMemo(
+        () => [...(data?.submissionsByUser || [])]
+            .filter((s) => s && s._id && s.problem_id)
+            .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)),
+        [data]
+    );
+
+    if (loading) {
+        return <div className="pf-loading"><CircularProgress size={48} thickness={5} /></div>;
+    }
+    if (failed || !data?.user) {
+        return <div className="pf-loading pf-error">Could not load your profile. Please refresh or log in again.</div>;
     }
 
-    if (!profileData || loading) {
-        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}><CircularProgress size={60} thickness={5} /></div>;
-    }
+    const { user, solvedStats, problemTotals, submissionStats } = data;
+    const attended = data.attendedContests || [];
+    const createdContests = data.createdContests || [];
+    const createdProblems = data.problemsByUser || [];
+    const isAdmin = user.role === 'admin';
+    const showCreated = isAdmin || createdContests.length > 0;
+
+    const solvedTotal = solvedStats?.total || 0;
+    const subTotal = submissionStats?.total ?? submissions.length;
+    const subAccepted = submissionStats?.accepted ?? submissions.filter((s) => s.verdict === 'Accepted').length;
+    const acceptance = subTotal ? `${Math.round((subAccepted / subTotal) * 100)}%` : '—';
+    const ranks = attended.map((c) => c.userStats?.rank).filter(Boolean);
+    const bestRank = ranks.length ? `#${Math.min(...ranks)}` : '—';
+    const initials = `${(user.firstname?.[0] || '')}${(user.lastname?.[0] || '')}`.toUpperCase();
+    const isNewUser = user.createdAt && (Date.now() - new Date(user.createdAt)) < 7 * 24 * 60 * 60 * 1000;
+
+    const tabs = [
+        { id: 'submissions', label: 'Submissions', count: submissions.length },
+        { id: 'contests', label: 'Contests', count: attended.length },
+        ...(showCreated ? [{ id: 'created', label: 'Created by me' }] : []),
+    ];
 
     const handleDeleteContest = async (contestId) => {
-        if (!window.confirm('Are you sure you want to delete this contest? This action cannot be undone.')) return;
+        if (!window.confirm('Delete this contest? This cannot be undone.')) return;
         try {
-            await axios.delete(`${BACKEND_URL}/contests/${contestId}`, { withCredentials: true });
-            setDeleteMsg('Contest deleted successfully.');
-            // Optionally refresh profile data
-            setProfileData(prev => ({
-                ...prev,
-                createdContests: prev.createdContests.filter(c => c._id !== contestId)
-            }));
-        } catch (error) {
-            setDeleteMsg('Failed to delete contest.');
-            console.error(error);
+            await axios.delete(`${BACKEND_URL}/admin/contests/${contestId}`, { withCredentials: true });
+            setData((prev) => ({ ...prev, createdContests: prev.createdContests.filter((c) => c._id !== contestId) }));
+            setMessage({ ok: true, text: 'Contest deleted.' });
+        } catch {
+            setMessage({ ok: false, text: 'Failed to delete the contest.' });
+        }
+    };
+
+    const handleDeleteProblem = async (problemId) => {
+        if (!window.confirm('Delete this problem and all its submissions? This cannot be undone.')) return;
+        try {
+            await axios.delete(`${BACKEND_URL}/admin/problems/${problemId}`, { withCredentials: true });
+            setData((prev) => ({ ...prev, problemsByUser: prev.problemsByUser.filter((p) => p._id !== problemId) }));
+            setMessage({ ok: true, text: 'Problem deleted.' });
+        } catch {
+            setMessage({ ok: false, text: 'Failed to delete the problem.' });
         }
     };
 
     return (
-        <Box className="profile-root">
-            <div className="profile-banner"></div>
-            <Card className="profile-header-card">
-                <Avatar className="profile-avatar">
-                    {(
-                        (profileData.user.firstname?.[0] || '').toUpperCase() +
-                        (profileData.user.lastname?.[0] || '').toUpperCase()
+        <div className="pf">
+            <header className="pf-header">
+                <div className="pf-avatar" aria-hidden="true">{initials}</div>
+                <div className="pf-id">
+                    <h1>
+                        {user.firstname} {user.lastname}
+                        {isAdmin && <span className="pf-chip pf-chip-admin">Admin</span>}
+                        {isNewUser && <span className="pf-chip pf-chip-new">New</span>}
+                    </h1>
+                    <p>{user.email}</p>
+                </div>
+                <div className="pf-stats">
+                    <Stat label="Solved" value={solvedTotal} />
+                    <Stat label="Acceptance" value={acceptance} hint={`${subAccepted} accepted of ${subTotal} submissions`} />
+                    <Stat label="Submissions" value={subTotal} />
+                    <Stat label="Contests" value={attended.length} />
+                    <Stat label="Best rank" value={bestRank} />
+                </div>
+            </header>
+
+            {message && <div className={`pf-toast ${message.ok ? 'ok' : 'bad'}`} role="status">{message.text}</div>}
+
+            <div className="pf-layout">
+                <aside className="pf-side">
+                    <ProgressCard solvedStats={solvedStats} problemTotals={problemTotals} />
+                </aside>
+
+                <main className="pf-main pf-card">
+                    <div className="pf-tabs" role="tablist">
+                        {tabs.map((t) => (
+                            <button key={t.id} role="tab" aria-selected={tab === t.id} className={`pf-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
+                                {t.label}{t.count != null && <span className="pf-count">{t.count}</span>}
+                            </button>
+                        ))}
+                    </div>
+
+                    {tab === 'submissions' && (
+                        submissions.length === 0 ? (
+                            <div className="pf-empty">
+                                <p>No submissions yet.</p>
+                                <Link className="pf-btn pf-btn-primary" to="/problems">Solve your first problem</Link>
+                            </div>
+                        ) : (
+                            <div className="pf-scroll">
+                                <table className="pf-table">
+                                    <thead>
+                                        <tr><th>Problem</th><th>Language</th><th>Verdict</th><th>Submitted</th><th /></tr>
+                                    </thead>
+                                    <tbody>
+                                        {submissions.map((s) => (
+                                            <tr key={s._id}>
+                                                <td>
+                                                    <Link className="pf-link" to={`/problem/${s.problem_id._id || s.problem_id}/description`}>
+                                                        {s.problem_id.problemName || 'Problem'}
+                                                    </Link>
+                                                </td>
+                                                <td>{LANGUAGE_LABELS[s.language] || s.language}</td>
+                                                <td><span className={`pf-verdict pf-v-${verdictTone(s.verdict)}`}>{s.verdict}</span></td>
+                                                <td title={formatDate(s.submittedAt)}>{timeAgo(s.submittedAt)}</td>
+                                                <td className="pf-right"><Link className="pf-btn pf-btn-ghost" to={`/submission/${s._id}`}>View code</Link></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <p className="pf-note">Showing your 20 most recent submissions.</p>
+                            </div>
+                        )
                     )}
-                </Avatar>
-                <Box className="profile-header-info">
-                    <Typography variant="h4" fontWeight={700}>
-                        {profileData.user.firstname} {profileData.user.lastname}
-                        {isNewUser && <span className="profile-badge">New</span>}
-                    </Typography>
-                    <Typography variant="subtitle1" color="text.secondary">{profileData.user.email}</Typography>
-                </Box>
-            </Card>
-            {/* Row: Solved Problems + Participated Contests */}
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 3, flexDirection: { xs: 'column', md: 'row' } }}>
-                {/* Solved Problems Section */}
-                <Card className="profile-section-card" sx={{ flex: 1, mb: 0 }}>
-                    <Typography className="profile-section-title">Solved Problems</Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
-                        {['easy', 'medium', 'hard'].map((level, idx) => {
-                            const colors = ['#43a047', '#ffb300', '#e53935'];
-                            const labelColors = ['#43a047', '#ffb300', '#e53935'];
-                            const labels = ['Easy', 'Medium', 'Hard'];
-                            const solved = profileData.solvedStats ? profileData.solvedStats[level] : 0;
-                            const total = profileData.problemTotals ? profileData.problemTotals[level] : 0;
-                            const percent = total > 0 ? (solved / total) * 100 : 0;
-                            return (
-                                <Box
-                                    key={labels[idx]}
-                                    textAlign="center"
-                                    sx={{
-                                        width: 120,
-                                        height: 130,
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                >
-                                    <Typography
-                                        variant="subtitle2"
-                                        sx={{
-                                            color: labelColors[idx],
-                                            fontWeight: 700,
-                                            fontSize: '1.25rem',
-                                            mb: 1,
-                                            letterSpacing: 0.2,
-                                        }}
-                                    >
-                                        {labels[idx]}
-                                    </Typography>
-                                    <Box sx={{ position: 'relative', width: 90, height: 90, mb: 1 }}>
-                                        <CircularProgress
-                                            variant="determinate"
-                                            value={100}
-                                            size={90}
-                                            thickness={6}
-                                            sx={{ color: '#e0e0e0', position: 'absolute', left: 0, top: 0 }}
-                                        />
-                                        <CircularProgress
-                                            variant="determinate"
-                                            value={percent}
-                                            size={90}
-                                            thickness={6}
-                                            sx={{ color: colors[idx], position: 'absolute', left: 0, top: 0 }}
-                                        />
-                                        <Box sx={{
-                                            position: 'absolute',
-                                            left: 0,
-                                            top: 0,
-                                            width: 90,
-                                            height: 90,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            pointerEvents: 'none',
-                                        }}>
-                                            <Typography
-                                                variant="h5"
-                                                sx={{ fontWeight: 900, color: '#222', fontSize: '1.5rem', letterSpacing: 0 }}
-                                            >
-                                                {solved}/{total}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Box>
-                            );
-                        })}
-                    </Box>
-                </Card>
-                {/* Participated Contests Section */}
-                {profileData.attendedContests && profileData.attendedContests.length > 0 && (
-                    <Card className="profile-section-card" sx={{ flex: 1, mb: 0 }}>
-                        <Typography className="profile-section-title">Participated Contests</Typography>
-                        <TableContainer className="profile-table-container" component={Paper}>
-                            <Table className="profile-table">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>S.No</TableCell>
-                                        <TableCell>Contest Name</TableCell>
-                                        <TableCell>Date</TableCell>
-                                        <TableCell>Rank</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {profileData.attendedContests.map((contest, idx) => (
-                                        <TableRow key={contest._id}>
-                                            <TableCell>{idx + 1}</TableCell>
-                                            <TableCell>
-                                                <Link to={`/contests/${contest._id}`} style={{ textDecoration: 'none', color: '#1976d2' }}>{contest.contestTitle}</Link>
-                                            </TableCell>
-                                            <TableCell>{formatFormalDate(contest.startTime)}</TableCell>
-                                            <TableCell>{contest.userStats ? contest.userStats.rank : '-'}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Card>
-                )}
-            </Box>
-            {/* Contests Created By User Section */}
-            {profileData.createdContests && profileData.createdContests.length > 0 && (
-                <Card className="profile-section-card">
-                    <Typography className="profile-section-title">Contests You Created</Typography>
-                    <TableContainer className="profile-table-container" component={Paper}>
-                        <Table className="profile-table">
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>S.No</TableCell>
-                                    <TableCell>Contest Title</TableCell>
-                                    <TableCell>Start Time</TableCell>
-                                    <TableCell>End Time</TableCell>
-                                    <TableCell>Problems</TableCell>
-                                    <TableCell>Actions</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {profileData.createdContests.map((contest, idx) => {
-                                    const now = new Date();
-                                    const start = new Date(contest.startTime);
-                                    const canEdit = start > now;
-                                    return (
-                                        <TableRow key={contest._id}>
-                                            <TableCell>{idx + 1}</TableCell>
-                                            <TableCell>
-                                                <Link to={`/contests/${contest._id}`} style={{ textDecoration: 'none', color: '#1976d2' }}>{contest.contestTitle}</Link>
-                                            </TableCell>
-                                            <TableCell>{formatFormalDate(contest.startTime)}</TableCell>
-                                            <TableCell>{formatFormalDate(contest.endTime)}</TableCell>
-                                            <TableCell>{contest.problems ? contest.problems.length : 0}</TableCell>
-                                            <TableCell>
-                                                {canEdit && (
-                                                    <Button variant="outlined" size="small" onClick={() => navigate(`/contests/${contest._id}/edit`)} style={{ minWidth: 0, padding: '2px 10px', marginRight: 6, borderColor: '#ffa116', color: '#ffa116', fontWeight: 600, background: 'linear-gradient(135deg, #fffbe6 0%, #fff3e0 100%)' }}>
-                                                        Edit
-                                                    </Button>
-                                                )}
-                                                <Button variant="outlined" size="small" color="error" onClick={() => handleDeleteContest(contest._id)} style={{ minWidth: 0, padding: '2px 10px', borderColor: '#f44336', color: '#f44336', fontWeight: 600, background: 'linear-gradient(135deg, #fff0f0 0%, #ffeaea 100%)' }}>
-                                                    Delete
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </Card>
-            )}
-            {/* Problems You Created Section */}
-            {profileData.user && profileData.user.role === 'admin' && (
-                <Card className="profile-section-card">
-                    <Typography className="profile-section-title">Problems You Created</Typography>
-                    <TableContainer className="profile-table-container" component={Paper}>
-                        <Table className="profile-table">
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>S.No</TableCell>
-                                    <TableCell>Problem Name</TableCell>
-                                    <TableCell>Created At</TableCell>
-                                    <TableCell>Edit</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {profileData.problemsByUser && profileData.problemsByUser.length > 0 ? (
-                                    profileData.problemsByUser.map((problem, idx) => (
-                                        <TableRow key={problem._id}>
-                                            <TableCell>{idx + 1}</TableCell>
-                                            <TableCell>{problem.problemName}</TableCell>
-                                            <TableCell>{formatFormalDate(problem.CreatedAt)}</TableCell>
-                                            <TableCell>
-                                                <Button variant="outlined" size="small" component={Link} to={`/problems/${problem._id}/edit`} style={{ minWidth: 0, padding: '2px 10px', marginRight: 6, borderColor: '#1976d2', color: '#1976d2', fontWeight: 600, background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)' }}>
-                                                    Edit
-                                                </Button>
-                                                <Button variant="outlined" size="small" color="error" onClick={() => handleDeleteProblem(problem._id)} style={{ minWidth: 0, padding: '2px 10px', borderColor: '#f44336', color: '#f44336', fontWeight: 600, background: 'linear-gradient(135deg, #fff0f0 0%, #ffeaea 100%)' }}>
-                                                    Delete
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} align="center">No problems created.</TableCell>
-                                    </TableRow>
+
+                    {tab === 'contests' && (
+                        attended.length === 0 ? (
+                            <div className="pf-empty">
+                                <p>You haven&apos;t taken part in a contest yet.</p>
+                                <Link className="pf-btn pf-btn-primary" to="/contests">Browse contests</Link>
+                            </div>
+                        ) : (
+                            <div className="pf-scroll">
+                                <table className="pf-table">
+                                    <thead><tr><th>Contest</th><th>Date</th><th>Rank</th><th>Solved</th></tr></thead>
+                                    <tbody>
+                                        {attended.map((c) => (
+                                            <tr key={c._id}>
+                                                <td><Link className="pf-link" to={`/contests/${c._id}`}>{c.contestTitle}</Link></td>
+                                                <td>{formatDate(c.startTime)}</td>
+                                                <td>{c.userStats ? `#${c.userStats.rank}` : '—'}</td>
+                                                <td>{c.userStats ? c.userStats.solvedProblems : '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
+                    )}
+
+                    {tab === 'created' && (
+                        <div className="pf-created">
+                            <section>
+                                <div className="pf-section-head">
+                                    <h4>Contests</h4>
+                                    {isAdmin && <Link className="pf-btn pf-btn-ghost" to="/contests/new">+ New contest</Link>}
+                                </div>
+                                {createdContests.length === 0 ? <p className="pf-note">No contests created.</p> : (
+                                    <div className="pf-scroll">
+                                        <table className="pf-table">
+                                            <thead><tr><th>Title</th><th>Starts</th><th>Ends</th><th>Problems</th><th /></tr></thead>
+                                            <tbody>
+                                                {createdContests.map((c) => (
+                                                    <tr key={c._id}>
+                                                        <td><Link className="pf-link" to={`/contests/${c._id}`}>{c.contestTitle}</Link></td>
+                                                        <td>{formatDate(c.startTime)}</td>
+                                                        <td>{formatDate(c.endTime)}</td>
+                                                        <td>{c.problems ? c.problems.length : 0}</td>
+                                                        <td className="pf-right pf-actions">
+                                                            {new Date(c.startTime) > new Date() && (
+                                                                <button className="pf-btn pf-btn-ghost" onClick={() => navigate(`/contests/${c._id}/edit`)}>Edit</button>
+                                                            )}
+                                                            <button className="pf-btn pf-btn-danger" onClick={() => handleDeleteContest(c._id)}>Delete</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
-                </Card>
-            )}
-            {/* Submissions Section */}
-            <Card className="profile-section-card">
-                <Typography className="profile-section-title">Your Submissions</Typography>
-                <TableContainer className="profile-table-container" component={Paper}>
-                    <Table className="profile-table">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>S.No</TableCell>
-                                <TableCell>Problem Name</TableCell>
-                                <TableCell>Language</TableCell>
-                                <TableCell>Verdict</TableCell>
-                                <TableCell>Submitted At</TableCell>
-                                <TableCell>View</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {profileData.submissionsByUser && profileData.submissionsByUser.length > 0 ? (
-                                profileData.submissionsByUser.map((submission, index) => {
-                                    if (!submission || !submission._id || !submission.problem_id) return null;
-                                    return (
-                                        <TableRow key={submission._id}>
-                                            <TableCell>{index + 1}</TableCell>
-                                            <TableCell>
-                                                <Link to={`/problem/${submission.problem_id._id || submission.problem_id}/description`} style={{ textDecoration: 'none', color: '#1976d2' }}>
-                                                    {submission.problem_id.problemName || submission.problem_id}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell>{submission.language}</TableCell>
-                                            <TableCell>{submission.verdict}</TableCell>
-                                            <TableCell>{formatFormalDate(submission.submittedAt)}</TableCell>
-                                            <TableCell>
-                                                <Button variant="outlined" size="small" component={Link} to={`/submission/${submission._id}`} style={{ minWidth: 0, padding: '2px 10px', fontWeight: 600, borderColor: '#43a047', color: '#43a047', background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)' }}>
-                                                    View Code
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={6} align="center">No submissions found.</TableCell>
-                                </TableRow>
+                            </section>
+
+                            {isAdmin && (
+                                <section>
+                                    <div className="pf-section-head">
+                                        <h4>Problems</h4>
+                                        <Link className="pf-btn pf-btn-ghost" to="/problems/new">+ New problem</Link>
+                                    </div>
+                                    {createdProblems.length === 0 ? <p className="pf-note">No problems created.</p> : (
+                                        <div className="pf-scroll">
+                                            <table className="pf-table">
+                                                <thead><tr><th>Problem</th><th>Created</th><th /></tr></thead>
+                                                <tbody>
+                                                    {createdProblems.map((p) => (
+                                                        <tr key={p._id}>
+                                                            <td><Link className="pf-link" to={`/problem/${p._id}/description`}>{p.problemName}</Link></td>
+                                                            <td>{formatDate(p.CreatedAt)}</td>
+                                                            <td className="pf-right pf-actions">
+                                                                <Link className="pf-btn pf-btn-ghost" to={`/problems/${p._id}/edit`}>Edit</Link>
+                                                                <button className="pf-btn pf-btn-danger" onClick={() => handleDeleteProblem(p._id)}>Delete</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </section>
                             )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Card>
-            {deleteMsg && <div style={{ color: deleteMsg.includes('success') ? 'green' : 'red', marginBottom: 8 }}>{deleteMsg}</div>}
-        </Box>
+                        </div>
+                    )}
+                </main>
+            </div>
+        </div>
     );
 }
 

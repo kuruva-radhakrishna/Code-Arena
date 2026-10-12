@@ -1,0 +1,95 @@
+.ptimer {
+  --tone: #2e7d32;
+  --tone-bg: #eef7ee;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 190px;
+  padding: 6px 12px 8px;
+  border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent);
+  border-radius: 12px;
+  background: var(--tone-bg);
+  transition: background 0.3s, border-color 0.3s;
+}
+.ptimer-ok   { --tone: #2e7d32; --tone-bg: #eef7ee; }
+.ptimer-warn { --tone: #e08600; --tone-bg: #fff6e5; }
+.ptimer-over { --tone: #d32f2f; --tone-bg: #fdeded; }
+.ptimer-done { --tone: #1565c0; --tone-bg: #e8f1fb; }
+
+.ptimer-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ptimer-clock {
+  font-family: 'Roboto Mono', 'Fira Mono', Consolas, monospace;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--tone);
+  font-variant-numeric: tabular-nums;
+}
+
+.ptimer-controls { display: inline-flex; gap: 2px; }
+
+.ptimer .ptimer-icon {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ptimer .ptimer-icon:hover { background: rgba(0, 0, 0, 0.07); }
+
+.ptimer-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+.ptimer-status { color: var(--tone); }
+
+.ptimer-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.ptimer-fill {
+  height: 100%;
+  background: var(--tone);
+  border-radius: inherit;
+  transition: width 1s linear, background 0.3s;
+}
+
+.ptimer-show {
+  border: 1px dashed #cbd5e1;
+  background: #fff;
+  color: #475569;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ptimer-show:hover { border-color: #ffa116; color: #b36b00; }
+
+/* compact sizing */
+.ptimer { min-width: 168px; padding: 5px 10px 7px; gap: 3px; border-radius: 10px; }
+.ptimer-clock { font-size: 1.05rem; }
+.ptimer .ptimer-icon { width: 24px; height: 24px; font-size: 0.8rem; }
+.ptimer-meta { font-size: 0.68rem; }
+.ptimer-show { padding: 5px 12px; font-size: 0.8rem; }

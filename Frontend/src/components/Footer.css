@@ -1,126 +1,55 @@
+/* Slim site footer. The right padding keeps the floating chat button (bottom-right,
+   ~92px wide) from covering the social icons. */
 .footer {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #fff;
-  padding: 48px 0 24px 0;
-  margin-top: 60px;
-  position: relative;
-  overflow: hidden;
-  /* border-top: 2px solid #ffa116; */
-  box-shadow: 0 -4px 24px rgba(25, 118, 210, 0.08);
+  margin-top: 48px;
+  background: #151a2c;
+  color: #c3c9d9;
+  border-top: 3px solid #ffa116;
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+  font-size: 13px;
 }
 
-.footer-content {
-  max-width: 1200px;
+.footer-inner {
+  box-sizing: border-box;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 0 32px;
-  display: flex;
-  justify-content: space-between;
+  padding: 22px 110px 22px 20px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 32px;
+  gap: 20px;
 }
 
-.footer-left {
-  flex: 1;
-  min-width: 250px;
-}
+.footer-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.footer-logo-img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+.footer-brand strong { display: block; font-size: 1.05rem; color: #fff; letter-spacing: 0.3px; }
+.footer-brand strong span { color: #ffa116; }
+.footer-brand p { margin: 2px 0 0; font-size: 12px; color: #8b93a8; }
 
-.footer-brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 1.08rem;
-  color: #b0b0b0;
-  font-weight: 500;
-}
+.footer-links { display: flex; gap: 22px; }
+.footer-links a { color: #c3c9d9; text-decoration: none; font-weight: 500; }
+.footer-links a:hover { color: #ffa116; }
 
-.footer-logo {
-  color: #ffa116 !important;
-  font-size: 1.7rem !important;
-  animation: pulse 2s infinite;
-}
-
-.footer-center {
-  flex: 1;
-  text-align: center;
-  font-size: 1.08rem;
-  color: #b0b0b0;
-  display: flex;
+.footer-end { display: flex; align-items: center; justify-content: flex-end; gap: 18px; min-width: 0; }
+.footer-made { display: inline-flex; align-items: center; gap: 5px; color: #8b93a8; white-space: nowrap; }
+.footer-heart { font-size: 15px !important; color: #ff5c7a; }
+.footer-socials { display: flex; gap: 8px; }
+.footer-socials a {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  font-weight: 500;
+  border: 1px solid #2d3550;
+  border-radius: 50%;
+  color: #c3c9d9;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
+.footer-socials a:hover { border-color: #ffa116; color: #ffa116; background: rgba(255, 161, 22, 0.08); }
 
-.heart-icon {
-  color: #ff6b6b !important;
-  font-size: 1.3rem !important;
-  animation: heartbeat 1.5s ease-in-out infinite;
-}
-
-.footer-right {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 18px;
-  min-width: 200px;
-}
-
-.footer-socials {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-}
-
-.social-link {
-  color: #ffa116 !important;
-  text-decoration: none !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 48px;
-  height: 48px;
-  border-radius: 50% !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  transition: all 0.3s cubic-bezier(.4,2,.6,1) !important;
-  border: 2px solid #ffa116 !important;
-  font-size: 1.5rem !important;
-  box-shadow: 0 2px 8px rgba(255,161,22,0.10);
-}
-
-.social-link:hover {
-  color: #fff !important;
-  background: #ffa116 !important;
-  transform: translateY(-4px) scale(1.08) !important;
-  box-shadow: 0 8px 24px rgba(255, 161, 22, 0.25) !important;
-  border-color: #fff !important;
-}
-
-.social-link .MuiSvgIcon-root {
-  font-size: 1.5rem !important;
-}
-
-/* Responsive design */
 @media (max-width: 900px) {
-  .footer-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 36px;
-  }
-  .footer-left,
-  .footer-center,
-  .footer-right {
-    flex: none;
-    width: 100%;
-    align-items: center;
-    justify-content: center;
-  }
-  .footer-right {
-    align-items: center;
-  }
-  .footer-socials {
-    justify-content: center;
-  }
-} 
+  .footer-inner { grid-template-columns: 1fr; gap: 14px; padding: 20px 16px 76px; text-align: center; }
+  .footer-brand, .footer-end { justify-content: center; }
+  .footer-end { flex-direction: column; gap: 10px; }
+  .footer-links { justify-content: center; }
+}

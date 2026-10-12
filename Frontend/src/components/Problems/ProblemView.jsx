@@ -1,136 +1,247 @@
-import { Routes, Route, Link, useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
+import ReactMarkdown from 'react-markdown';
+import CircularProgress from '@mui/material/CircularProgress';
+import './ProblemView.css'; // legacy styles still shared with the contest problem page
+import './ProblemWorkspace.css';
 import ProblemDescription from "./ProblemDescription";
 import ProblemSubmissions from "./ProblemSubmissions";
-import { useEffect, useState, useRef } from "react";
-import axios from "axios";
-import './ProblemView.css';
-import CodeEditor from './CodeEditor';
-import InputOutputConsole from './InputOutputConsole';
-import Verdict from './Verdict';
-import Box from '@mui/material/Box';
-import ReactMarkdown from 'react-markdown';
 import ProblemDiscussion from "./ProblemDiscussion";
-import CircularProgress from '@mui/material/CircularProgress';
+import ProblemAIChat from "./ProblemAIChat";
+import ProblemTimer from "./ProblemTimer";
+import { formatClock } from "../../utils/formatClock";
+import CodeEditor from './CodeEditor';
+import Verdict from './Verdict';
+import useProblemList from '../../hooks/useProblemList';
+import { useAuth } from '../../contexts/AuthContext';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const COMPILER_URL = import.meta.env.VITE_COMPILER_URL;
 
-function Problem(props) {
-    const params = useParams();
-    const problemId = props.problemId || params.problemId || params.id;
+const LANGUAGES = [
+    { value: 'cpp', label: 'C++' },
+    { value: 'java', label: 'Java' },
+    { value: 'python', label: 'Python' },
+];
+
+const TEMPLATES = {
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // your code here\n    return 0;\n}\n`,
+    python: `def main():\n    # your code here\n    pass\n\nif __name__ == "__main__":\n    main()\n`,
+    java: `import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // your code here\n    }\n}\n`,
+};
+
+const safeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } };
+const safeDel = (k) => { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } };
+
+const TABS = [
+    { id: 'description', label: 'Description' },
+    { id: 'tutor', label: '✨ AI Tutor' },
+    { id: 'submissions', label: 'Submissions' },
+    { id: 'discussions', label: 'Discussion' },
+];
+
+/* ───────────────────────── toolbar: prev / list / next ───────────────────────── */
+
+function ProblemNav({ problems, solvedSet, currentId, onGo }) {
+    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState('');
+    const wrapRef = useRef(null);
+
+    const index = problems.findIndex((p) => p._id === currentId);
+    const prev = index > 0 ? problems[index - 1] : null;
+    const next = index >= 0 && index < problems.length - 1 ? problems[index + 1] : null;
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const onDown = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
+        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [open]);
+
+    const filtered = useMemo(() => {
+        const s = q.trim().toLowerCase();
+        return problems
+            .map((p, i) => ({ p, n: i + 1 }))
+            .filter(({ p }) => !s || p.problemName.toLowerCase().includes(s));
+    }, [problems, q]);
+
+    return (
+        <div className="pv-nav" ref={wrapRef}>
+            <button className="pv-btn pv-btn-ghost" disabled={!prev} onClick={() => prev && onGo(prev._id)} title={prev ? `Previous: ${prev.problemName}` : 'No previous problem'} aria-label="Previous problem">
+                ‹ Prev
+            </button>
+            <button className="pv-btn pv-btn-ghost pv-list-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="listbox">
+                ☰ <span className="pv-list-count">{index >= 0 ? `${index + 1} / ${problems.length}` : 'Problems'}</span>
+            </button>
+            <button className="pv-btn pv-btn-ghost" disabled={!next} onClick={() => next && onGo(next._id)} title={next ? `Next: ${next.problemName}` : 'No next problem'} aria-label="Next problem">
+                Next ›
+            </button>
+
+            {open && (
+                <div className="pv-drawer" role="listbox" aria-label="Problem list">
+                    <input
+                        autoFocus
+                        className="pv-drawer-search"
+                        placeholder="Search problems"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                    />
+                    <ul>
+                        {filtered.map(({ p, n }) => (
+                            <li key={p._id}>
+                                <button
+                                    className={`pv-drawer-item${p._id === currentId ? ' current' : ''}`}
+                                    onClick={() => { setOpen(false); if (p._id !== currentId) onGo(p._id); }}
+                                >
+                                    <span className="pv-drawer-no">{n}</span>
+                                    <span className="pv-drawer-name">{p.problemName}</span>
+                                    {solvedSet.has(p._id) && <span className="pv-drawer-solved" title="Solved">✓</span>}
+                                    <span className={`pv-dot ${p.difficulty}`} title={p.difficulty} />
+                                </button>
+                            </li>
+                        ))}
+                        {filtered.length === 0 && <li className="pv-drawer-empty">No matches</li>}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ───────────────────────────── the workspace ───────────────────────────── */
+
+function Workspace({ problemId, tab, setTab }) {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const userId = user?._id || 'anon';
+    const { problems, solvedSet } = useProblemList();
+
     const [problem, setProblem] = useState();
-    const [language, setLanguage] = useState('cpp');
-    const [code, setCode] = useState('');
+    const [submissions, setSubmissions] = useState([]);
+
+    const [language, setLanguage] = useState(() => {
+        const saved = safeGet('ca_language');
+        return LANGUAGES.some((l) => l.value === saved) ? saved : 'cpp';
+    });
+    const codeKey = useCallback((lang) => `ca_code_${userId}_${problemId}_${lang}`, [userId, problemId]);
+    const [code, setCode] = useState(() => safeGet(`ca_code_${userId}_${problemId}_${language}`) ?? TEMPLATES[language]);
+    const codeRef = useRef(code);
+    codeRef.current = code;
+
     const [input, setInput] = useState('');
-    const [output, setOutput] = useState('');
+    const [runOutput, setRunOutput] = useState(null); // { ok, text }
     const [verdicts, setVerdicts] = useState([]);
     const [failedCase, setFailedCase] = useState(null);
-    const [submissions, setSubmissions] = useState([]);
-    const [review, setReview] = useState('');
-    const [aiReviewClicked, setAIReviewClicked] = useState(false);
-    const [debugResult, setDebugResult] = useState('');
-    const [debugLoading, setDebugLoading] = useState(false);
-    const Navigate = useNavigate();
-    const [tab, setTab] = useState('description');
+    const [consoleTab, setConsoleTab] = useState('testcase');
     const [runLoading, setRunLoading] = useState(false);
     const [submitLoading, setSubmitLoading] = useState(false);
-    const [showFailedCase, setShowFailedCase] = useState(true);
+    const [solvedNow, setSolvedNow] = useState(false);
+    const [solveTime, setSolveTime] = useState(null);
 
-    useEffect(() => {
-        switch (language) {
-            case "c++":
-                setCode(`#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // your code here\n    return 0;\n}`);
-                break;
-            case "python":
-                setCode(`def main():\n    # your code here\n    pass\n\nif __name__ == "__main__":\n    main()`);
-                break;
-            case "java":
-                setCode(`public class Main {\n    public static void main(String[] args) {\n        // your code here\n    }\n}`);
-                break;
-            default:
-                setCode(`#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // your code here\n    return 0;\n}`);
-        }
-    }, [language]);
+    const [aiPanel, setAiPanel] = useState(null); // { kind: 'review' | 'debug', text }
+    const [aiLoading, setAiLoading] = useState(null); // 'review' | 'debug' | null
 
-    // Fetch submissions
-    const fetchSubmissions = async () => {
+    // ── data ──
+    const fetchSubmissions = useCallback(async () => {
         try {
-            const result = await axios.get(`${BACKEND_URL}/submissions/${problemId}`, {
-                withCredentials: true
-            });
-            if (result && result.data) {
-                console.log(result.data);
-                const subs = result.data;
-                subs.sort((s1, s2) => new Date(s2.createdAt) - new Date(s1.createdAt));
-                console.log(subs);
-                setSubmissions(subs);
-            } else {
-                setSubmissions([]);
-            }
-        } catch (error) {
+            const result = await axios.get(`${BACKEND_URL}/submissions/${problemId}`, { withCredentials: true });
+            const subs = Array.isArray(result.data) ? [...result.data] : [];
+            subs.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+            setSubmissions(subs);
+        } catch {
             setSubmissions([]);
         }
+    }, [problemId]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const result = await axios.get(`${BACKEND_URL}/problems/${problemId}`, { withCredentials: true });
+                if (cancelled) return;
+                if (!result.data || !result.data._id) {
+                    alert("Selected problem has been deleted.");
+                    navigate("/problems");
+                    return;
+                }
+                setProblem(result.data);
+                const firstPublic = (result.data.TestCases || []).find((t) => t.isPublic !== false) || (result.data.TestCases || [])[0];
+                setInput(firstPublic?.input ?? '');
+            } catch {
+                if (!cancelled) {
+                    alert("Problem fetch error.");
+                    navigate("/problems");
+                }
+            }
+        })();
+        fetchSubmissions();
+        return () => { cancelled = true; };
+    }, [problemId, navigate, fetchSubmissions]);
+
+    // ── code persistence (per problem + language, survives refresh) ──
+    useEffect(() => {
+        const id = setTimeout(() => {
+            if (code === TEMPLATES[language]) safeDel(codeKey(language));
+            else safeSet(codeKey(language), code);
+        }, 400);
+        return () => clearTimeout(id);
+    }, [code, language, codeKey]);
+
+    const changeLanguage = (next) => {
+        if (next === language) return;
+        // flush the current draft before switching so nothing is lost
+        if (code === TEMPLATES[language]) safeDel(codeKey(language)); else safeSet(codeKey(language), code);
+        safeSet('ca_language', next);
+        setLanguage(next);
+        setCode(safeGet(codeKey(next)) ?? TEMPLATES[next]);
     };
 
-    // Fetch problem
-    useEffect(() => {
-        const fetchProblem = async () => {
-            try {
-                const result = await axios.get(`${BACKEND_URL}/problems/${problemId}`, {
-                    withCredentials: true,
-                });
-                if (!result.data) {
-                    alert("Selected problem has been deleted.");
-                    Navigate("/problems");
-                } else {
-                    setProblem(result.data);
-                }
-            } catch (err) {
-                alert("Problem fetch error.");
-                Navigate("/problems");
-            }
-        };
-        fetchProblem();
-        fetchSubmissions();
-    }, [problemId, Navigate]);
+    const resetCode = () => {
+        if (code !== TEMPLATES[language] && !window.confirm('Reset your code to the starter template?')) return;
+        safeDel(codeKey(language));
+        setCode(TEMPLATES[language]);
+    };
 
-    if (!problem) {
-        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}><CircularProgress size={60} thickness={5} /></div>;
-    }
-
-    // Handlers
+    // ── actions ──
     const handleRun = async () => {
         setRunLoading(true);
+        setConsoleTab('output');
         try {
-            const result = await axios.post(`${COMPILER_URL}/run`, {
-                language,
-                code,
-                input
-            }, { withCredentials: true });
-            if (result.data.output) {
-                setOutput(result.data.output.output);
+            const { data } = await axios.post(`${COMPILER_URL}/run`, { language, code, input }, { withCredentials: true, timeout: 30000 });
+            if (data.errorType) {
+                setRunOutput({ ok: false, text: [data.errorType, data.error].filter(Boolean).join('\n') });
+            } else {
+                setRunOutput({ ok: true, text: data.output?.output ?? '' });
             }
-            if (result.data.errorType) {
-                setOutput(result.data.errorType);
-            }
-        } catch (error) {
-            setOutput('Run failed.');
+        } catch {
+            setRunOutput({ ok: false, text: 'Run failed. The compiler service did not respond.' });
         }
         setRunLoading(false);
     };
+
     const handleSubmit = async () => {
         setSubmitLoading(true);
+        setConsoleTab('result');
         try {
-            const url = `${BACKEND_URL}/submissions/${problemId}`;
-            const payload = {
-                problem_id: problemId,
-                language,
-                code,
-            };
-            const result = await axios.post(url, payload, { withCredentials: true });
-            setVerdicts(result.data.verdicts);
-            setFailedCase(result.data.failedCase || null);
-            setShowFailedCase(true);
+            const { data } = await axios.post(
+                `${BACKEND_URL}/submissions/${problemId}`,
+                { problem_id: problemId, language, code },
+                { withCredentials: true, timeout: 120000 }
+            );
+            const v = data.verdicts || [];
+            setVerdicts(v);
+            setFailedCase(data.failedCase || null);
+            const accepted = v.length > 0 && v.every((x) => (x?.status ?? x) === 'Accepted');
+            if (accepted && !solvedNow) {
+                setSolvedNow(true);
+            }
             fetchSubmissions();
         } catch (error) {
             console.log(error);
@@ -139,150 +250,218 @@ function Problem(props) {
         }
         setSubmitLoading(false);
     };
-    const handleAIReview = async () => {
-        setAIReviewClicked(true);
+
+    const handleAI = async (kind) => {
+        setAiLoading(kind);
+        setConsoleTab('ai');
+        setAiPanel({ kind, text: '' });
         try {
-            const result = await axios.post(`${BACKEND_URL}/ai/review`,
-                { code , problemId } , { withCredentials: true }
-            );
-            setReview(result.data.review);
-            setAIReviewClicked(false);
-        } catch (error) {
-            setReview('AI review failed.');
-            setAIReviewClicked(false);
+            const { data } = kind === 'review'
+                ? await axios.post(`${BACKEND_URL}/ai/review`, { code, problemId }, { withCredentials: true })
+                : await axios.post(`${BACKEND_URL}/ai/debug`, { code, problemDescription: problem?.problemDescription }, { withCredentials: true });
+            setAiPanel({ kind, text: (kind === 'review' ? data.review : data.debug) || 'No response from the AI.' });
+        } catch {
+            setAiPanel({ kind, text: `AI ${kind} failed. Please try again.` });
         }
-    }
-    const handleAIDebug = async () => {
-        setDebugLoading(true);
-        setDebugResult('');
-        try {
-            const result = await axios.post(`${BACKEND_URL}/ai/debug`, {
-                code,
-                problemDescription: problem.problemDescription
-            }, { withCredentials: true });
-            setDebugResult(result.data.debug);
-        } catch (error) {
-            setDebugResult('AI debug failed.');
-        }
-        setDebugLoading(false);
+        setAiLoading(null);
     };
 
+    const getCode = useCallback(() => codeRef.current, []);
+    const goToProblem = (id) => navigate(`/problem/${id}/description`);
+
+    if (!problem) {
+        return <div className="pv-loading"><CircularProgress size={56} thickness={5} /></div>;
+    }
+
+    const alreadySolved = solvedNow || solvedSet.has(problemId) || submissions.some((s) => s.verdict === 'Accepted');
+    const examples = (problem.TestCases || []).filter((t) => t.isPublic !== false).slice(0, 3);
+
     return (
-        <div className="problem-view">
-            <div className="row">
-                <div className="problem custom-scroll">
-                    <div style={{ marginBottom: "1rem", display: 'flex', gap: 8 }}>
-                        <button onClick={() => setTab('description')} className={tab === 'description' ? 'active-tab' : ''}>Description</button>
-                        <button onClick={() => setTab('submissions')} className={tab === 'submissions' ? 'active-tab' : ''}>Submissions</button>
-                        <button onClick={() => setTab('discussions')} className={tab === 'discussions' ? 'active-tab' : ''}>Discussions</button>
+        <div className="pv2">
+            <div className="pv-toolbar">
+                <ProblemNav
+                    problems={problems}
+                    solvedSet={solvedNow ? new Set([...solvedSet, problemId]) : solvedSet}
+                    currentId={problemId}
+                    onGo={goToProblem}
+                />
+                <div className="pv-toolbar-title" title={problem.problemName}>
+                    {alreadySolved && <span className="pv-solved-badge" title="You have solved this problem">✓ Solved</span>}
+                </div>
+                <ProblemTimer
+                    key={problemId}
+                    problemId={problemId}
+                    difficulty={problem.difficulty}
+                    userId={userId}
+                    solved={solvedNow}
+                    onFinish={setSolveTime}
+                />
+            </div>
+
+            {solvedNow && (
+                <div className="pv-banner" role="status">
+                    🎉 Accepted! You solved <strong>{problem.problemName}</strong>
+                    {solveTime != null && <> in <strong>{formatClock(solveTime)}</strong></>}.
+                    {(() => {
+                        const idx = problems.findIndex((p) => p._id === problemId);
+                        const nxt = idx >= 0 ? problems[idx + 1] : null;
+                        return nxt ? <button className="pv-btn pv-btn-primary pv-banner-btn" onClick={() => goToProblem(nxt._id)}>Next: {nxt.problemName} ›</button> : null;
+                    })()}
+                </div>
+            )}
+
+            <div className="pv-panes">
+                {/* ── left: statement / submissions / discussion / tutor ── */}
+                <section className="pv-card pv-left">
+                    <div className="pv-tabs" role="tablist">
+                        {TABS.map((t) => (
+                            <button
+                                key={t.id}
+                                role="tab"
+                                aria-selected={tab === t.id}
+                                className={`pv-tab${tab === t.id ? ' active' : ''}`}
+                                onClick={() => setTab(t.id)}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
                     </div>
-                    {tab === 'description' && <ProblemDescription />}
-                    {tab === 'submissions' && <ProblemSubmissions submissions={submissions} refreshSubmissions={fetchSubmissions} />}
-                    {tab === 'discussions' && <ProblemDiscussion problemId={problemId} />}
-                </div>
-                {/* Right section: Code editor and controls */}
-                <div className="solution custom-scroll">
-                    <select
-                        name="language"
-                        value={language}
-                        onChange={e => setLanguage(e.target.value)}
-                        className="language-select"
-                    >
-                        <option value="cpp">C++</option>
-                        <option value="java">Java</option>
-                        <option value="python">Python</option>
-                    </select>
-                    <CodeEditor value={code} onChange={setCode} language={language} />
-                    <Box display="flex" gap={2} mt={2} justifyContent="space-between">
-                        <div style={{ display: 'flex', gap: 16 }}>
-                            <button onClick={handleRun} className="ai-review-btn" disabled={runLoading}>
-                                {runLoading ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <CircularProgress size={18} style={{ color: '#fff' }} />
-                                        Running...
-                                    </span>
-                                ) : '▶️ Run'}
+                    <div className={`pv-card-body${tab === 'tutor' ? ' pv-card-body-fill' : ''}`}>
+                        {tab === 'description' && <ProblemDescription problem={problem} />}
+                        {tab === 'submissions' && <ProblemSubmissions submissions={submissions} refreshSubmissions={fetchSubmissions} />}
+                        {tab === 'discussions' && <ProblemDiscussion problemId={problemId} />}
+                        {tab === 'tutor' && <ProblemAIChat problemId={problemId} getCode={getCode} language={language} />}
+                    </div>
+                </section>
+
+                {/* ── right: editor + console ── */}
+                <section className="pv-card pv-right">
+                    <div className="pv-editor-head">
+                        <select
+                            value={language}
+                            onChange={(e) => changeLanguage(e.target.value)}
+                            className="pv-select"
+                            aria-label="Language"
+                        >
+                            {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+                        </select>
+                        <button className="pv-btn pv-btn-ghost pv-btn-sm" onClick={resetCode} title="Reset to starter template">↺ Reset</button>
+                    </div>
+
+                    <div className="pv-editor">
+                        <CodeEditor value={code} onChange={setCode} language={language} showLabel={false} height="100%" />
+                    </div>
+
+                    <div className="pv-actions">
+                        <div className="pv-actions-group">
+                            <button className="pv-btn pv-btn-run" onClick={handleRun} disabled={runLoading || submitLoading}>
+                                {runLoading ? <><span className="pv-spin" />Running…</> : '▶ Run'}
                             </button>
-                            <button onClick={handleSubmit} className="submit-btn" disabled={submitLoading}>
-                                {submitLoading ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <CircularProgress size={18} style={{ color: '#fff' }} />
-                                        Submitting...
-                                    </span>
-                                ) : '📤 Submit'}
+                            <button className="pv-btn pv-btn-primary" onClick={handleSubmit} disabled={submitLoading || runLoading}>
+                                {submitLoading ? <><span className="pv-spin" />Judging…</> : 'Submit'}
                             </button>
                         </div>
-                        <div style={{ display: 'flex', gap: 16 }}>
-                            <button onClick={handleAIReview} disabled={aiReviewClicked} className="ai-review-btn">📝 AI Review</button>
-                            <button onClick={handleAIDebug} disabled={debugLoading} className="ai-debug-btn">🐞 {debugLoading ? 'Debugging...' : 'AI Debug'}</button>
+                        <div className="pv-actions-group">
+                            <button className="pv-btn pv-btn-ai" onClick={() => handleAI('review')} disabled={!!aiLoading}>
+                                {aiLoading === 'review' ? <><span className="pv-spin" />Reviewing…</> : '📝 AI Review'}
+                            </button>
+                            <button className="pv-btn pv-btn-ai" onClick={() => handleAI('debug')} disabled={!!aiLoading}>
+                                {aiLoading === 'debug' ? <><span className="pv-spin" />Debugging…</> : '🐞 AI Debug'}
+                            </button>
                         </div>
-                    </Box>
-                    {failedCase && showFailedCase && (
-                        <div style={{
-                            background: '#f8fafd',
-                            border: '1.5px solid #e0e0e0',
-                            borderRadius: 10,
-                            marginTop: 12,
-                            marginBottom: 18,
-                            padding: '16px 18px 10px 18px',
-                            color: '#222',
-                            fontSize: '1.05rem',
-                            width: '100%',
-                            maxWidth: '100%',
-                            position: 'relative',
-                            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.07)'
-                        }}>
-                            <button onClick={() => setShowFailedCase(false)} style={{
-                                position: 'absolute', top: 8, right: 12,
-                                background: '#ffa116', border: '1.5px solid #e57373',
-                                borderRadius: '50%', width: 28, height: 28,
-                                fontSize: 18, color: '#fff', cursor: 'pointer', fontWeight: 700,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
-                            }} title="Close">×</button>
-                            <b>Failed Test Case:</b>
-                            <div style={{ marginTop: 8, marginBottom: 6 }}>
-                                <b>Input:</b>
-                                <pre style={{ background: '#f5f7fa', borderRadius: 6, padding: 8, margin: 0, overflowX: 'auto', maxWidth: '100%' }}>{failedCase.input}</pre>
-                            </div>
-                            <div style={{ marginBottom: 6 }}>
-                                <b>Expected Output:</b>
-                                <pre style={{ background: '#f5f7fa', borderRadius: 6, padding: 8, margin: 0, overflowX: 'auto', maxWidth: '100%' }}>{failedCase.expectedOutput || failedCase.expected}</pre>
-                            </div>
-                            <div>
-                                <b>Your Output:</b>
-                                <pre style={{ background: '#f5f7fa', borderRadius: 6, padding: 8, margin: 0, overflowX: 'auto', maxWidth: '100%' }}>{failedCase.actualOutput || failedCase.actual}</pre>
-                            </div>
+                    </div>
+
+                    <div className="pv-console">
+                        <div className="pv-console-tabs" role="tablist">
+                            {[
+                                ['testcase', 'Testcase'],
+                                ['output', 'Output'],
+                                ['result', 'Result'],
+                                ['ai', 'AI'],
+                            ].map(([id, label]) => (
+                                <button
+                                    key={id}
+                                    role="tab"
+                                    aria-selected={consoleTab === id}
+                                    className={`pv-ctab${consoleTab === id ? ' active' : ''}`}
+                                    onClick={() => setConsoleTab(id)}
+                                >
+                                    {label}
+                                </button>
+                            ))}
                         </div>
-                    )}
-                    {review && (
-                        <div className="ai-review-container" style={{ position: 'relative' }}>
-                            <button
-                                className="ai-close-btn"
-                                title="Close"
-                                onClick={() => setReview('')}
-                            >×</button>
-                            <div className="ai-section-header">📝 <span>AI Review</span></div>
-                            <div className="ai-review-content"><ReactMarkdown>{review}</ReactMarkdown></div>
+
+                        <div className="pv-console-body">
+                            {consoleTab === 'testcase' && (
+                                <>
+                                    {examples.length > 0 && (
+                                        <div className="pv-example-chips">
+                                            {examples.map((ex, i) => (
+                                                <button key={i} className="pv-chip" onClick={() => setInput(ex.input)}>Example {i + 1}</button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <textarea
+                                        className="pv-textarea"
+                                        value={input}
+                                        onChange={(e) => setInput(e.target.value)}
+                                        placeholder="Custom input (optional)"
+                                        spellCheck={false}
+                                        aria-label="Custom input"
+                                    />
+                                </>
+                            )}
+
+                            {consoleTab === 'output' && (
+                                runOutput ? (
+                                    <pre className={`pv-output${runOutput.ok ? '' : ' pv-output-error'}`}>{runOutput.text === '' ? '(no output)' : runOutput.text}</pre>
+                                ) : (
+                                    <p className="pv-muted">Run your code to see the output here.</p>
+                                )
+                            )}
+
+                            {consoleTab === 'result' && (
+                                <>
+                                    <Verdict verdicts={verdicts} />
+                                    {failedCase && (
+                                        <div className="pv-failed">
+                                            <strong>Failed test case</strong>
+                                            <div><span>Input</span><pre>{failedCase.input}</pre></div>
+                                            <div><span>Expected</span><pre>{failedCase.expectedOutput ?? failedCase.expected}</pre></div>
+                                            <div><span>Your output</span><pre>{failedCase.actualOutput ?? failedCase.actual}</pre></div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {consoleTab === 'ai' && (
+                                aiPanel ? (
+                                    <div className="pv-ai">
+                                        <div className="pv-ai-title">{aiPanel.kind === 'review' ? '📝 AI Review' : '🐞 AI Debug'}</div>
+                                        {aiLoading ? (
+                                            <p className="pv-muted"><span className="pv-spin pv-spin-dark" />Thinking…</p>
+                                        ) : (
+                                            <ReactMarkdown>{aiPanel.text}</ReactMarkdown>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="pv-muted">Use <strong>AI Review</strong> or <strong>AI Debug</strong> to get feedback on your code.</p>
+                                )
+                            )}
                         </div>
-                    )}
-                    {debugResult && (
-                        <div className="ai-debug-container" style={{ position: 'relative' }}>
-                            <button
-                                className="ai-close-btn"
-                                title="Close"
-                                onClick={() => setDebugResult('')}
-                            >×</button>
-                            <div className="ai-section-header">🐞 <span>AI Debug</span></div>
-                            <div className="ai-debug-content"><ReactMarkdown>{debugResult}</ReactMarkdown></div>
-                        </div>
-                    )}
-                    <InputOutputConsole inputValue={input} onInputChange={e => setInput(e.target.value)} outputValue={output} isOutput={true} />
-                    <Verdict verdicts={verdicts} />
-                </div>
+                    </div>
+                </section>
             </div>
         </div>
     );
+}
+
+/* Keyed by problem id so every field (code, output, timer…) resets cleanly on prev / next. */
+function Problem(props) {
+    const params = useParams();
+    const problemId = props.problemId || params.problemId || params.id;
+    const [tab, setTab] = useState('description');
+    return <Workspace key={problemId} problemId={problemId} tab={tab} setTab={setTab} />;
 }
 
 export default Problem;

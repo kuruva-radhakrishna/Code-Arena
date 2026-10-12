@@ -1,285 +1,254 @@
 import axios from "axios";
-import { useState, useEffect } from "react";
-import { useParams, Link, Outlet } from "react-router-dom";
-import "./ContestView.css";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
+import "./ContestPage.css";
 import ReactMarkdown from 'react-markdown';
 import CircularProgress from '@mui/material/CircularProgress';
+import { useAuth } from "../../contexts/AuthContext";
+import { formatCountdown } from "../../utils/countdown";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-function ContestView({ contestId }) {
-    const [contest, setContest] = useState(null);
-    const [status, setStatus] = useState("loading"); // 'future', 'ongoing', 'past', 'loading', 'notlive'
-    const [now, setNow] = useState(new Date());
-    const [error, setError] = useState("");
+const DEFAULT_RULES = [
+    "Each problem carries the points shown in the table.",
+    "You can submit as many times as you like; points are awarded for the first accepted solution.",
+    "Plagiarism or cheating will result in disqualification.",
+    "The leaderboard updates as submissions are judged.",
+    "Do not discuss problems publicly until the contest ends.",
+    "Ties are broken by the earliest last correct submission.",
+];
 
-    useEffect(() => {
-        async function fetchContest() {
-            try {
-                const res = await axios.get(
-                    `${BACKEND_URL}/contests/${contestId}`,
-                    { withCredentials: true }
-                );
-                setContest(res.data);
-                const start = new Date(res.data.startTime);
-                const end = new Date(res.data.endTime);
-                if (now < start) setStatus("future");
-                else if (now >= start && now < end) setStatus("ongoing");
-                else setStatus("past");
-            } catch (err) {
-                if (err.response && err.response.status === 400) {
-                    setStatus("notlive");
-                } else {
-                    setError("Failed to load contest.");
-                }
-            }
-        }
-        fetchContest();
-        const timer = setInterval(() => setNow(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, [contestId]);
+const formatWhen = (iso) => new Date(iso).toLocaleString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+});
 
-    if (status === "loading") return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}><CircularProgress size={60} thickness={5} /></div>;
-    if (error) return <div style={{ color: "red" }}>{error}</div>;
-    if (status === "notlive" || status === "future")
-        return (
-            <div className="contest-container contest-future">
-                <h2 className="section-title">
-                    <span role="img" aria-label="calendar">
-                        📅
-                    </span>{" "}
-                    {contest ? contest.contestTitle : "Contest"}
-                </h2>
-                {contest && <div style={{margin: '24px 0'}}><ContestRulesSection contest={contest} forceShowDescription={true} /></div>}
-                {contest && <Countdown to={contest.startTime} label="Starts in" />}
-                <p style={{ marginTop: 32, fontSize: '1.18rem', fontWeight: 500, color: '#222' }}>Contest has not started yet.</p>
-            </div>
-        );
+const initials = (u) => `${u?.firstname?.[0] || ''}${u?.lastname?.[0] || ''}`.toUpperCase() || '?';
+
+function phaseOf(contest, now) {
     if (!contest) return null;
-    if (status === "ongoing")
-        return (
-            <div className="contest-container contest-ongoing">
-                <h2 className="section-title">
-                    <span role="img" aria-label="trophy">
-                        🏆
-                    </span>{" "}
-                    {contest.contestTitle}
-                </h2>
-                <ContestRulesSection contest={contest} />
-                <Countdown to={contest.endTime} label="Ends in" />
-                <ProblemsSection contest={contest} />
-                <LeaderboardSection contestId={contestId} />
-            </div>
-        );
-    if (status === "past")
-        return (
-            <div className="contest-container contest-past">
-                <h2 className="section-title">
-                    <span role="img" aria-label="trophy">
-                        🏆
-                    </span>{" "}
-                    {contest.contestTitle}
-                </h2>
-                <ContestRulesSection contest={contest} />
-                <p>Contest is over.</p>
-                <ProblemsSection contest={contest} />
-                <LeaderboardSection contestId={contestId} />
-            </div>
-        );
+    const start = new Date(contest.startTime).getTime();
+    const end = new Date(contest.endTime).getTime();
+    return now < start ? 'future' : now < end ? 'ongoing' : 'past';
 }
 
-function Countdown({ to, label }) {
-    const [time, setTime] = useState("");
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const diff = new Date(to) - new Date();
-            if (diff <= 0) setTime("00:00:00");
-            else {
-                const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
-                const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
-                const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
-                setTime(`${h}:${m}:${s}`);
-            }
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [to]);
-    return (
-        <div className="countdown">
-            {label}: {time}
-        </div>
-    );
-}
+function ContestView({ contestId: contestIdProp }) {
+    const params = useParams();
+    const contestId = contestIdProp || params.id;
+    const { user } = useAuth();
 
-function ProblemsSection({ contest }) {
-    return (
-        <div className="ongoing-problems">
-            <h3 className="section-title">
-                <span role="img" aria-label="problem">
-                    📝
-                </span>{" "}
-                Problems
-            </h3>
-            <table className="problems-table">
-                <thead>
-                    <tr>
-                        <th>S.No</th>
-                        <th>Problem Name</th>
-                        <th>Points</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {contest.problems.map((p, idx) => (
-                        <tr key={p.problem_id._id || p.problem_id}>
-                            <td>{idx + 1}</td>
-                            <td>
-                                <Link
-                                    className="problem-link"
-                                    to={`/contests/${contest._id}/problem/${p.problem_id._id || p.problem_id}/description`}
-                                    state={{ contestId: contest._id }}
-                                >
-                                    {p.problem_id.problemName ||
-                                        `Problem ${String.fromCharCode(65 + idx)}`}
-                                </Link>
-                            </td>
-                            <td>
-                                <span className="badge">{p.points} pts</span>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-}
-
-function LeaderboardSection({ contestId }) {
+    const [contest, setContest] = useState(null);
+    const [loadState, setLoadState] = useState('loading'); // loading | ready | error
     const [leaderboard, setLeaderboard] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
-        async function fetchLeaderboard() {
+        const t = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(t);
+    }, []);
+
+    const phase = phaseOf(contest, now);
+    // true once we hold the full contest (with problem names), not just the list summary
+    const hasProblems = !!contest?.problems?.[0]?.problem_id?.problemName || (contest?.problems || []).length === 0;
+
+    // Load the contest. Before it starts the API answers 400, so fall back to the public
+    // list entry (title, times) to still show a countdown. Reload when it goes live.
+    useEffect(() => {
+        let cancelled = false;
+        async function load() {
             try {
-                const res = await axios.get(
-                    `${BACKEND_URL}/contests/${contestId}/leaderboard`,
-                    { withCredentials: true }
-                );
-                setLeaderboard(res.data);
+                const res = await axios.get(`${BACKEND_URL}/contests/${contestId}`, { withCredentials: true });
+                if (!cancelled) { setContest(res.data); setLoadState('ready'); }
             } catch (err) {
-                setLeaderboard([]);
+                if (err.response?.status === 400) {
+                    try {
+                        const list = await axios.get(`${BACKEND_URL}/contests`, { withCredentials: true });
+                        const summary = (list.data || []).find((c) => c._id === contestId);
+                        if (!cancelled && summary) { setContest(summary); setLoadState('ready'); return; }
+                    } catch { /* fall through */ }
+                }
+                if (!cancelled) setLoadState('error');
             }
-            setLoading(false);
         }
-        fetchLeaderboard();
-    }, [contestId]);
+        if (!contest || (phase !== 'future' && !hasProblems)) load();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [contestId, phase === 'future']);
 
-    if (loading) return <div>Loading leaderboard...</div>;
-    if (!leaderboard || leaderboard.length === 0)
-        return <div>No leaderboard data.</div>;
+    // Leaderboard (live contests refresh every 30s)
+    useEffect(() => {
+        if (!contest || phase === 'future') return undefined;
+        let cancelled = false;
+        const fetchBoard = async () => {
+            try {
+                const res = await axios.get(`${BACKEND_URL}/contests/${contestId}/leaderboard`, { withCredentials: true });
+                if (!cancelled) setLeaderboard(Array.isArray(res.data) ? res.data : []);
+            } catch {
+                if (!cancelled) setLeaderboard([]);
+            }
+        };
+        fetchBoard();
+        const id = phase === 'ongoing' ? setInterval(fetchBoard, 30000) : null;
+        return () => { cancelled = true; if (id) clearInterval(id); };
+    }, [contestId, phase === 'future', phase === 'ongoing']); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const problemCount = leaderboard[0]?.problems.length || 0;
+    const me = useMemo(() => leaderboard.find((e) => e.user?._id && e.user._id === user?._id), [leaderboard, user]);
+
+    if (loadState === 'loading') {
+        return <div className="cv-center"><CircularProgress size={48} thickness={5} /></div>;
+    }
+    if (loadState === 'error' || !contest) {
+        return <div className="cv-center cv-error">Could not load this contest. It may not exist or has not been published yet.</div>;
+    }
+
+    const start = new Date(contest.startTime).getTime();
+    const end = new Date(contest.endTime).getTime();
+    const duration = end - start;
+    const progress = phase === 'ongoing' ? Math.min(100, ((now - start) / duration) * 100) : phase === 'past' ? 100 : 0;
+    const problems = contest.problems || [];
+    const totalPoints = problems.reduce((s, p) => s + (p.points || 0), 0);
+    const clock = phase === 'future'
+        ? { label: 'Starts in', value: formatCountdown(start - now) }
+        : phase === 'ongoing'
+            ? { label: 'Time left', value: formatCountdown(end - now) }
+            : { label: 'Contest ended', value: null };
 
     return (
-        <>
-            <h3 className="section-title">
-                <span role="img" aria-label="leaderboard">📊</span>{" "}
-                Leaderboard
-            </h3>
-
-            <div className="contest-leaderboard">
-                <table>
-                    <thead>
-                        <tr>
-                            <th className="rank-cell">Rank</th>
-                            <th>User</th>
-                            <th>Total Points</th>
-                            {[...Array(problemCount)].map((_, i) => (
-                                <th key={i}>{`Q${i + 1}`}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {leaderboard.map((entry, idx) => (
-                            <tr
-                                key={entry.user._id}
-                                className={`top-${idx + 1 <= 3 ? idx + 1 : ""}`}
-                            >
-                                <td className="rank-cell">
-                                    <span className="rank-stack">
-                                        {idx === 0 && (
-                                            <span className="trophy" role="img" aria-label="gold">🏆</span>
-                                        )}
-                                        {idx === 1 && (
-                                            <span className="trophy" role="img" aria-label="silver">🥈</span>
-                                        )}
-                                        {idx === 2 && (
-                                            <span className="trophy" role="img" aria-label="bronze">🥉</span>
-                                        )}
-                                        <span className="rank-number">{idx + 1}</span>
-                                    </span>
-                                </td>
-
-                                <td>
-                                    {entry.user.firstname} {entry.user.lastname}
-                                </td>
-
-                                <td>{entry.totalPoints}</td>
-
-                                
-
-                                {entry.problems.map((submission, i) => (
-                                    <td key={i}>
-                                        {submission?.verdict === "Accepted" ? (
-                                            <span className="badge bg-success">✅</span>
-                                        ) : submission ? (
-                                            <span className="badge bg-danger">❌</span>
-                                        ) : (
-                                            ""
-                                        )}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </>
-    );
-}
-
-
-function ContestRulesSection({ contest, forceShowDescription }) {
-    const defaultRules = [
-        "Each problem carries the points shown in the table.",
-        "You can submit solutions as many times as you like; only your best score counts.",
-        "Plagiarism or cheating will result in disqualification.",
-        "Leaderboard is updated in real-time.",
-        "Partial points may be awarded for partially correct solutions (if supported).",
-        "Do not discuss problems publicly until the contest ends.",
-        "In case of ties, the user with the earliest last correct submission ranks higher.",
-        "If you make multiple correct submissions for a problem, only your last correct submission will be considered for tie-breaking."
-    ];
-    return (
-        <>
-            {(forceShowDescription || contest.description) && (
-                <div className="contest-description-box" style={{background: '#f8fafc', borderRadius: 10, padding: '18px 22px', margin: '18px 0 24px 0', textAlign: 'left', boxShadow: '0 1px 4px rgba(25,118,210,0.06)'}}>
-                    <div style={{fontWeight: 700, fontSize: '1.13rem', marginBottom: 8}}>Description</div>
-                    <ReactMarkdown>{contest.description || 'No description provided.'}</ReactMarkdown>
+        <div className="cv">
+            <header className={`cv-hero cv-hero-${phase}`}>
+                <div className="cv-hero-main">
+                    <span className={`cv-status cv-status-${phase}`}>
+                        {phase === 'ongoing' && <i className="cv-dot" />}
+                        {phase === 'future' ? 'Upcoming' : phase === 'ongoing' ? 'Live' : 'Ended'}
+                    </span>
+                    <h1>{contest.contestTitle}</h1>
+                    <ul className="cv-facts">
+                        <li><span>Starts</span>{formatWhen(contest.startTime)}</li>
+                        <li><span>Ends</span>{formatWhen(contest.endTime)}</li>
+                        <li><span>Duration</span>{Math.round(duration / 60000 / 60 * 10) / 10}h</li>
+                        {problems.length > 0 && <li><span>Problems</span>{problems.length} · {totalPoints} pts</li>}
+                    </ul>
                 </div>
-            )}
-            <div className="contest-rules-box" style={{background: '#f6faff', borderRadius: 10, padding: '18px 22px', textAlign: 'left', boxShadow: '0 1px 4px rgba(25,118,210,0.06)'}}>
-                <h3 className="section-title" style={{textAlign: 'left', marginTop: 0}}>
-                    <span role="img" aria-label="rules">📜</span> Contest Rules & Info
-                </h3>
-                <ul className="contest-rules-list" style={{textAlign: 'left'}}>
-                    {(contest.rules && contest.rules.length > 0 ? contest.rules : defaultRules).map((rule, idx) => (
-                        <li key={idx}>{rule}</li>
-                    ))}
-                </ul>
-                <div className="leaderboard-info" style={{textAlign: 'left'}}>
-                    <strong>Leaderboard:</strong> Rankings are based on total points. In case of a tie, the user with the earliest last correct submission is ranked higher.
+                <div className="cv-clock">
+                    <small>{clock.label}</small>
+                    {clock.value && <strong>{clock.value}</strong>}
+                    {phase === 'ongoing' && (
+                        <div className="cv-progress" aria-hidden="true"><div style={{ width: `${progress}%` }} /></div>
+                    )}
+                    {phase === 'past' && me && <em>You ranked #{me.rank} with {me.totalPoints} pts</em>}
                 </div>
+            </header>
+
+            <div className="cv-layout">
+                <main className="cv-main">
+                    {phase === 'future' ? (
+                        <section className="cv-card cv-locked">
+                            <div aria-hidden="true" className="cv-lock">🔒</div>
+                            <h3>Problems unlock when the contest starts</h3>
+                            <p>Come back in <strong>{formatCountdown(start - now)}</strong>. Read the rules on the right in the meantime.</p>
+                        </section>
+                    ) : (
+                        <>
+                            <section className="cv-card">
+                                <h3>Problems</h3>
+                                {problems.length === 0 ? <p className="cv-muted">No problems in this contest.</p> : (
+                                    <table className="cv-table">
+                                        <thead><tr><th>#</th><th>Problem</th><th>Points</th><th>{phase === 'ongoing' ? '' : ''}</th></tr></thead>
+                                        <tbody>
+                                            {problems.map((p, idx) => {
+                                                const pid = p.problem_id?._id || p.problem_id;
+                                                const mine = me?.problems?.[idx];
+                                                const solved = mine?.verdict === 'Accepted';
+                                                return (
+                                                    <tr key={pid || idx}>
+                                                        <td className="cv-q">{String.fromCharCode(65 + idx)}</td>
+                                                        <td>
+                                                            <Link className="cv-link" to={`/contests/${contest._id}/problem/${pid}/description`} state={{ contestId: contest._id }}>
+                                                                {p.problem_id?.problemName || `Problem ${String.fromCharCode(65 + idx)}`}
+                                                            </Link>
+                                                            {solved && <span className="cv-solved" title="You solved this">✓ Solved</span>}
+                                                        </td>
+                                                        <td><span className="cv-pts">{p.points} pts</span></td>
+                                                        <td className="cv-right">
+                                                            <Link className="cv-btn" to={`/contests/${contest._id}/problem/${pid}/description`} state={{ contestId: contest._id }}>
+                                                                {phase === 'ongoing' ? (solved ? 'Review' : 'Solve') : 'View'}
+                                                            </Link>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </section>
+
+                            <section className="cv-card">
+                                <div className="cv-card-head">
+                                    <h3>Leaderboard</h3>
+                                    {phase === 'ongoing' && <span className="cv-muted">Updates every 30 seconds</span>}
+                                </div>
+                                {leaderboard.length === 0 ? <p className="cv-muted">No submissions yet — be the first on the board.</p> : (
+                                    <div className="cv-scroll">
+                                        <table className="cv-table cv-board">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rank</th>
+                                                    <th>User</th>
+                                                    <th>Points</th>
+                                                    {problems.map((p, i) => <th key={i} className="cv-center-cell">{String.fromCharCode(65 + i)}</th>)}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {leaderboard.map((e, idx) => {
+                                                    const isMe = me && e.user?._id === me.user?._id;
+                                                    return (
+                                                        <tr key={e.user?._id || idx} className={isMe ? 'cv-me' : ''}>
+                                                            <td className="cv-rank">
+                                                                {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : <span>{idx + 1}</span>}
+                                                            </td>
+                                                            <td>
+                                                                <span className="cv-user">
+                                                                    <i className="cv-avatar">{initials(e.user)}</i>
+                                                                    {e.user?.firstname} {e.user?.lastname}
+                                                                    {isMe && <b className="cv-you">You</b>}
+                                                                </span>
+                                                            </td>
+                                                            <td className="cv-total">{e.totalPoints}</td>
+                                                            {problems.map((_, i) => {
+                                                                const s = e.problems?.[i];
+                                                                return (
+                                                                    <td key={i} className="cv-center-cell">
+                                                                        {s?.verdict === 'Accepted' ? <span className="cv-ac">✓</span> : s ? <span className="cv-wa">✗</span> : <span className="cv-none">–</span>}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </section>
+                        </>
+                    )}
+                </main>
+
+                <aside className="cv-side">
+                    <section className="cv-card">
+                        <h3>About</h3>
+                        <div className="cv-markdown">
+                            <ReactMarkdown>{contest.description || 'No description provided.'}</ReactMarkdown>
+                        </div>
+                    </section>
+                    <section className="cv-card">
+                        <h3>Rules</h3>
+                        <ul className="cv-rules">
+                            {(contest.rules?.length ? contest.rules : DEFAULT_RULES).map((r, i) => <li key={i}>{r}</li>)}
+                        </ul>
+                    </section>
+                </aside>
             </div>
-        </>
+        </div>
     );
 }
 

@@ -248,3 +248,156 @@
     font-size: 0.7rem;
   }
 } 
+
+/* ───────── Problems list v2: toolbar, table wrapper, pagination ───────── */
+.problems {
+  max-width: 1100px;
+  box-sizing: border-box;
+}
+
+.problems-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh;
+}
+
+.problems-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0 12px;
+}
+
+.problems-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 260px;
+  max-width: 420px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #6b7280;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.problems-search:focus-within {
+  border-color: #ffa116;
+  box-shadow: 0 0 0 3px rgba(255, 161, 22, 0.15);
+}
+
+.problems-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: #222;
+}
+
+.problems-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.problems-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.problems .problems-random {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 10px;
+  background: #ffa116;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.problems .problems-random:hover:not(:disabled) { background: #ff9100; }
+.problems .problems-random:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.problems-error {
+  color: #d32f2f;
+  text-align: center;
+}
+
+.problems-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 36px 0;
+}
+
+.problems-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.problems table {
+  min-width: 560px;
+}
+
+.problems .col-no { width: 64px; }
+.problems .col-diff { width: 120px; }
+
+.problems th, .problems td {
+  padding: 12px 14px;
+}
+
+/* rows were sliding up on hover which fights with the table layout */
+.problems tr:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.problems .th-sort {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.problems .th-sort:hover { color: #0d47a1; }
+.problems .th-sort .MuiSvgIcon-root { font-size: 1rem; }
+
+.problems .topic-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.problems .solved-tick {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 2px;
+}
+
+@media (max-width: 700px) {
+  .problems .col-topics { display: none; }
+  .problems table { min-width: 0; }
+  .problems th, .problems td { padding: 10px 8px; }
+  .problems-toolbar-right { width: 100%; justify-content: space-between; }
+}

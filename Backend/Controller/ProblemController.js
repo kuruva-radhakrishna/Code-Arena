@@ -42,7 +42,12 @@ exports.getProblemById = async (req, res) => {
         if (!problem) {
             return res.status(500).json({ message: "The problem You are search for is not present" });
         }
-        res.status(200).json(problem);
+        // Hidden test cases (isPublic: false) must not reach regular users; admins need them for editing.
+        const body = problem.toObject();
+        if (!req.user || req.user.role !== 'admin') {
+            body.TestCases = (body.TestCases || []).filter((t) => t.isPublic !== false);
+        }
+        res.status(200).json(body);
     } catch (error) {
         return res.status(500).json({ message: "Internal Serve Issue" });
     }

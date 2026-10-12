@@ -5,7 +5,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "seed": "node seed/seedProblems.js",
+    "seed:verify": "node seed/verifyProblemSet.js && node seed/verifyProblemSet2.js",
+    "seed:contests": "node seed/seedContests.js"
   },
   "author": "",
   "license": "ISC",

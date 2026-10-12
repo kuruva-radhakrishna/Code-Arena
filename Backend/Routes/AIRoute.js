@@ -14,6 +14,7 @@ router.post('/createProblem', AIController.createProblemAI);
 router.post('/debug', AIController.debugCode);
 router.post('/contest-description', AIController.generateContestDescription);
 router.post('/chat', AIController.chat);
+router.post('/problem-chat', AIController.problemChat);
 
 router.post('/generate-problem', AIController.generateProblem);
 

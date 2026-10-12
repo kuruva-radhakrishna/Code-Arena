@@ -92,13 +92,14 @@ app.get('/api/profile/summary', async (req, res) => {
       .limit(20)
       .populate('problem_id');
 
-    // Solved stats
-    const solvedSet = new Set();
-    submissionsByUser.forEach(sub => {
-      if (sub.verdict === 'Accepted' && sub.problem_id && sub.problem_id._id) {
-        solvedSet.add(sub.problem_id._id.toString());
-      }
-    });
+    // Solved stats must come from ALL of the user's accepted submissions, not just the
+    // 20 most recent ones shown in the table below.
+    const solvedIds = await Submission.find({ user_id: userId, verdict: 'Accepted' }).distinct('problem_id');
+    const solvedSet = new Set(solvedIds.map(id => id.toString()));
+    const [totalSubmissions, acceptedSubmissions] = await Promise.all([
+      Submission.countDocuments({ user_id: userId }),
+      Submission.countDocuments({ user_id: userId, verdict: 'Accepted' }),
+    ]);
     let solvedStats = { easy: 0, medium: 0, hard: 0, total: 0 };
     let problemTotals = { easy: 0, medium: 0, hard: 0 };
     problems.forEach(prob => {
@@ -179,6 +180,7 @@ app.get('/api/profile/summary', async (req, res) => {
     res.json({
       user: req.user,
       solvedStats,
+      submissionStats: { total: totalSubmissions, accepted: acceptedSubmissions },
       problemTotals,
       problemsByUser,
       submissionsByUser,
