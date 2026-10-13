@@ -13,7 +13,7 @@ const executeJava = function (filePath, inputFilePath) {
 
     return withSlot(async () => {
         await compile(`javac -d "${jobDir}" "${filePath}"`);
-        return execute(`java -Xmx256m -cp "${jobDir}" Main < "${inputFilePath}"`);
+        return execute(`java -Xmx256m -cp "${jobDir}" Main < "${inputFilePath}"`, 'java');
     }).finally(cleanup);
 };
 

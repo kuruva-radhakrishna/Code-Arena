@@ -9,10 +9,22 @@ const { exec, execSync } = require('child_process');
 
 const LIMITS = {
     compileMs: Number(process.env.COMPILE_TIME_LIMIT_MS) || 20000,
-    runMs: Number(process.env.RUN_TIME_LIMIT_MS) || 10000,
     maxBuffer: 10 * 1024 * 1024,
     maxConcurrent: Number(process.env.MAX_CONCURRENT_JOBS) || 2,
 };
+
+// Per-test time limit (wall clock). Typical judges allow about 1-2 s; the slower languages get
+// more room, and a shared free-tier CPU needs some headroom to avoid false "Time Limit Exceeded".
+// Override one language with RUN_TIME_LIMIT_<LANG>_MS (e.g. RUN_TIME_LIMIT_PYTHON_MS=6000), or all
+// of them with RUN_TIME_LIMIT_MS.
+const DEFAULT_RUN_MS = { c: 2000, cpp: 2000, java: 4000, python: 4000 };
+function runLimitMs(language) {
+    const specific = Number(process.env[`RUN_TIME_LIMIT_${String(language).toUpperCase()}_MS`]);
+    if (specific > 0) return specific;
+    const all = Number(process.env.RUN_TIME_LIMIT_MS);
+    if (all > 0) return all;
+    return DEFAULT_RUN_MS[language] || 4000;
+}
 
 // Debian images ship "python3" (and often "python"); Alpine only has "python3".
 const PYTHON = (() => {
@@ -67,15 +79,16 @@ async function compile(command) {
  * Run step. "exec" makes the shell replace itself with the program, so the time-limit kill
  * hits the program itself and not just the wrapping shell.
  */
-async function execute(command) {
+async function execute(command, language) {
+    const limitMs = runLimitMs(language);
     const start = process.hrtime();
-    const r = await run(`exec ${command}`, LIMITS.runMs);
+    const r = await run(`exec ${command}`, limitMs);
     const diff = process.hrtime(start);
     const timeMs = (diff[0] * 1000 + diff[1] / 1e6).toFixed(2);
     if (r.tooMuchOutput) throw { type: 'runtime', message: 'Output limit exceeded.' };
-    if (r.timedOut) throw { type: 'timeout', message: `Time limit exceeded (${LIMITS.runMs / 1000}s).` };
+    if (r.timedOut) throw { type: 'timeout', message: `Time limit exceeded (${limitMs / 1000}s).` };
     if (r.error) throw { type: 'runtime', message: r.stderr || 'The program crashed or exited with an error.' };
     return { output: r.stdout, timeMs };
 }
 
-module.exports = { LIMITS, PYTHON, withSlot, compile, execute };
+module.exports = { LIMITS, PYTHON, withSlot, compile, execute, runLimitMs };

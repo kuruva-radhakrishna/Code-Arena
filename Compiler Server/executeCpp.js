@@ -18,7 +18,7 @@ const executeCpp = function (filePath, inputFilePath) {
 
     return withSlot(async () => {
         await compile(`g++ -O2 "${filePath}" -o "${outputFilePath}"`);
-        return execute(`"${outputFilePath}" < "${inputFilePath}"`);
+        return execute(`"${outputFilePath}" < "${inputFilePath}"`, 'cpp');
     }).finally(cleanup);
 };
 

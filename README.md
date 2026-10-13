@@ -248,7 +248,8 @@ Settings (all optional except the CORS origins):
 | --- | --- |
 | `FRONTEND_URL`, `BACKEND_URL` | Origins allowed to call the runner (CORS). |
 | `FRONTEND_PREVIEW_PATTERN` | Regex for Vercel preview URLs. |
-| `RUN_TIME_LIMIT_MS` | Per-run limit, default `10000`. Exceeding it gives the verdict **Time Limit Exceeded**. |
+| `RUN_TIME_LIMIT_<LANG>_MS` | Per-test time limit for `C`, `CPP`, `JAVA` or `PYTHON`. Defaults: C/C++ 2000, Java 4000, Python 4000. Exceeding it gives the verdict **Time Limit Exceeded**. |
+| `RUN_TIME_LIMIT_MS` | One limit for every language (overridden by the per-language variables). |
 | `COMPILE_TIME_LIMIT_MS` | Compile limit, default `20000`. |
 | `MAX_CONCURRENT_JOBS` | Jobs running at once, default `2`; extra jobs queue. Raise it on a bigger instance. |
 
