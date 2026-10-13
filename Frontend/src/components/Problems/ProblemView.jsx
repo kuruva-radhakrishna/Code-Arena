@@ -139,6 +139,7 @@ function Workspace({ problemId, tab, setTab }) {
     const [input, setInput] = useState('');
     const [runOutput, setRunOutput] = useState(null); // { ok, text }
     const [verdicts, setVerdicts] = useState([]);
+    const [submitError, setSubmitError] = useState('');
     const [failedCase, setFailedCase] = useState(null);
     const [consoleTab, setConsoleTab] = useState('testcase');
     const [runLoading, setRunLoading] = useState(false);
@@ -236,6 +237,7 @@ function Workspace({ problemId, tab, setTab }) {
                 { problem_id: problemId, language, code },
                 { withCredentials: true, timeout: 120000 }
             );
+            setSubmitError('');
             const v = data.verdicts || [];
             setVerdicts(v);
             setFailedCase(data.failedCase || null);
@@ -246,7 +248,8 @@ function Workspace({ problemId, tab, setTab }) {
             fetchSubmissions();
         } catch (error) {
             console.log(error);
-            setVerdicts([{ status: 'Submission failed.' }]);
+            setVerdicts([]);
+            setSubmitError(error.response?.data?.message || 'Submission failed. Please check your connection and try again.');
             setFailedCase(null);
         }
         setSubmitLoading(false);
@@ -423,6 +426,7 @@ function Workspace({ problemId, tab, setTab }) {
 
                             {consoleTab === 'result' && (
                                 <>
+                                    {submitError && <p className="pv-output pv-output-error">{submitError}</p>}
                                     <Verdict verdicts={verdicts} />
                                     {failedCase && (
                                         <div className="pv-failed">

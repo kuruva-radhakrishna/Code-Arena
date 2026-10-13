@@ -1,55 +1,22 @@
-const { exec } = require('child_process');
 const fs = require('fs');
-const path = require('path');
+const { PYTHON, withSlot, execute } = require('./sandbox');
 
-const outputsPath = path.join(__dirname, 'outputs');
-if (!fs.existsSync(outputsPath)) {
-    fs.mkdirSync(outputsPath, { recursive: true });
-}
-
-const executePython = async function (filePath, inputFilePath) {
+const executePython = function (filePath, inputFilePath) {
     const cleanup = () => {
-        [filePath, inputFilePath].forEach(file => {
-            if (fs.existsSync(file)) {
-                fs.unlink(file, () => {});
-            }
-        });
+        [filePath, inputFilePath].forEach((file) => fs.rm(file, { force: true }, () => {}));
     };
 
-    return new Promise((resolve, reject) => {
-        const runCommand = `python "${filePath}" < "${inputFilePath}"`;
-        const start = process.hrtime();
-
-        exec(runCommand, (error, stdout, stderr) => {
-            const diff = process.hrtime(start);
-            const timeMs = (diff[0] * 1000 + diff[1] / 1e6).toFixed(2);
-
-            const rawMessage = stderr || error?.message || '';
-            const normalizedMessage = rawMessage.replace(/\r\n/g, '\n');
-
-
-            if (error) {
-                cleanup();
-                console.log('error in execute' , error);
-                if (normalizedMessage.includes('SyntaxError')) {
-                    return reject({ type: 'syntax', message: normalizedMessage });
-                } else if (normalizedMessage.includes('Traceback')) {
-                    return reject({ type: 'runtime', message: normalizedMessage });
-                } else {
-                    return reject({ type: 'internal', message: normalizedMessage });
-                }
+    return withSlot(async () => {
+        try {
+            return await execute(`${PYTHON} "${filePath}" < "${inputFilePath}"`);
+        } catch (err) {
+            // a Python syntax error is reported on its own, like a compile error
+            if (err.type === 'runtime' && /SyntaxError|IndentationError|TabError/.test(err.message || '')) {
+                throw { type: 'syntax', message: err.message };
             }
-
-            cleanup();
-            return resolve({
-                output: stdout,
-                timeMs,
-            });
-        });
-    }).catch(err => {
-        cleanup();
-        return Promise.reject(err);
-    });
+            throw err;
+        }
+    }).finally(cleanup);
 };
 
 module.exports = executePython;

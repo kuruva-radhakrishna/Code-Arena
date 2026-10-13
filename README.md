@@ -238,6 +238,26 @@ How the colours work:
 
 When you add UI, reuse an existing token (search `theme-colors.css` for a close colour) instead of a new hex code. If you do add a new colour, add it to both blocks of `theme-colors.css` and check it in both themes; plain text on a coloured surface should keep at least a 4.5:1 contrast ratio.
 
+## Deploying the code runner (Compiler Server)
+
+The runner compiles and executes submitted code, so the machine it runs on needs `g++`, `gcc`, Python 3 **and a JDK (for Java)**. `Compiler Server/Dockerfile` installs all of them, so deploy it as a **Docker** service (on Render: New Web Service -> Runtime **Docker**, Root Directory `Compiler Server`). Deploying it as a plain Node service gives you C++ and Python but no `javac`, and every Java submission fails with `javac: not found`.
+
+Settings (all optional except the CORS origins):
+
+| Variable | Purpose |
+| --- | --- |
+| `FRONTEND_URL`, `BACKEND_URL` | Origins allowed to call the runner (CORS). |
+| `FRONTEND_PREVIEW_PATTERN` | Regex for Vercel preview URLs. |
+| `RUN_TIME_LIMIT_MS` | Per-run limit, default `10000`. Exceeding it gives the verdict **Time Limit Exceeded**. |
+| `COMPILE_TIME_LIMIT_MS` | Compile limit, default `20000`. |
+| `MAX_CONCURRENT_JOBS` | Jobs running at once, default `2`; extra jobs queue. Raise it on a bigger instance. |
+
+After moving the runner to a new service, point the backend's `COMPILER_URL` and the frontend's `VITE_COMPILER_URL` at the new URL.
+
+A quick health check: `POST <runner>/run` with `{"language":"java","code":"public class Main { public static void main(String[] a){ System.out.println(1); } }","input":""}` should answer `{"output":{"output":"1\n",...}}`.
+
+On free hosting an idle runner goes to sleep; the backend waits up to 60 s, retries once and otherwise answers 503 "the code runner is not responding" without recording a submission.
+
 ## Contributing
 
 1. Fork the repo and create your branch.

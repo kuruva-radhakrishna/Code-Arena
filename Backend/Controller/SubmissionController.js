@@ -2,6 +2,7 @@ require('dotenv').config();
 const Submission = require('../Models/Submissions');
 const Problem = require('../Models/Problems');
 const axios = require('axios');
+const { runOnCompiler } = require('../utils/judge');
 const Contest = require('../Models/Contests');
 
 const COMPILER_URL = process.env.COMPILER_URL;
@@ -58,11 +59,7 @@ exports.createSubmission = async (req, res) => {
         }
 
         for (const tc of problem.TestCases) {
-            const result = await axios.post(`${COMPILER_URL}/run`, {
-                code,
-                language,
-                input: tc.input,
-            },{withCredentials:true});
+            const result = { data: await runOnCompiler({ code, language, input: tc.input }) };
 
             const output = result.data.output?.output;
 
@@ -108,6 +105,10 @@ exports.createSubmission = async (req, res) => {
 
     } catch (error) {
         console.error('Error while creating submission:', error);
+        if (error && error.judgeDown) {
+            // the code runner is down / waking up: not the user's fault, nothing is recorded
+            return res.status(503).json({ message: error.message });
+        }
         return res.status(500).json({ message: "Internal Server Error" });
     }
 };
