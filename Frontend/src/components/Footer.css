@@ -2,9 +2,9 @@
    ~92px wide) from covering the social icons. */
 .footer {
   margin-top: 48px;
-  background: #151a2c;
-  color: #c3c9d9;
-  border-top: 3px solid #ffa116;
+  background: var(--bg-151a2c);
+  color: var(--tx-c3c9d9);
+  border-top: 3px solid var(--bd-ffa116);
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
   font-size: 13px;
 }
@@ -23,16 +23,16 @@
 .footer-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .footer-logo-img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
 .footer-brand strong { display: block; font-size: 1.05rem; color: #fff; letter-spacing: 0.3px; }
-.footer-brand strong span { color: #ffa116; }
-.footer-brand p { margin: 2px 0 0; font-size: 12px; color: #8b93a8; }
+.footer-brand strong span { color: var(--tx-ffa116); }
+.footer-brand p { margin: 2px 0 0; font-size: 12px; color: var(--tx-8b93a8); }
 
 .footer-links { display: flex; gap: 22px; }
-.footer-links a { color: #c3c9d9; text-decoration: none; font-weight: 500; }
-.footer-links a:hover { color: #ffa116; }
+.footer-links a { color: var(--tx-c3c9d9); text-decoration: none; font-weight: 500; }
+.footer-links a:hover { color: var(--tx-ffa116); }
 
 .footer-end { display: flex; align-items: center; justify-content: flex-end; gap: 18px; min-width: 0; }
-.footer-made { display: inline-flex; align-items: center; gap: 5px; color: #8b93a8; white-space: nowrap; }
-.footer-heart { font-size: 15px !important; color: #ff5c7a; }
+.footer-made { display: inline-flex; align-items: center; gap: 5px; color: var(--tx-8b93a8); white-space: nowrap; }
+.footer-heart { font-size: 15px !important; color: var(--tx-ff5c7a); }
 .footer-socials { display: flex; gap: 8px; }
 .footer-socials a {
   width: 32px;
@@ -40,12 +40,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #2d3550;
+  border: 1px solid var(--bd-2d3550);
   border-radius: 50%;
-  color: #c3c9d9;
+  color: var(--tx-c3c9d9);
   transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
-.footer-socials a:hover { border-color: #ffa116; color: #ffa116; background: rgba(255, 161, 22, 0.08); }
+.footer-socials a:hover { border-color: var(--bd-ffa116); color: var(--tx-ffa116); background: rgba(255, 161, 22, 0.08); }
 
 @media (max-width: 900px) {
   .footer-inner { grid-template-columns: 1fr; gap: 14px; padding: 20px 16px 76px; text-align: center; }

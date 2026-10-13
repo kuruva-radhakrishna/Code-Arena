@@ -226,6 +226,18 @@ With no provider configured nothing is sent. In development the email, including
 
 The endpoints are `POST /forgot-password` (5 requests / 15 min / IP) and `POST /reset-password` (10 / 15 min / IP). Only a SHA-256 hash of the token is stored, a link works once, and resetting a password signs the account out everywhere.
 
+## Light / dark theme
+
+The navbar has a sun/moon switch. With no saved choice the site follows the operating system's setting; once you pick one it is remembered in this browser (`localStorage` key `ca_theme`). The theme is applied as `data-theme="light|dark"` on `<html>`, set by a tiny script in `index.html` before React renders so there is no flash.
+
+How the colours work:
+
+- `src/theme/theme-colors.css` (generated) holds one CSS variable per colour used in the stylesheets, named by role: `--bg-…` (backgrounds), `--bd-…` (borders) and `--tx-…` (text). The `:root` value is the original light colour; the `[data-theme='dark']` value is derived from it. Component CSS uses `var(--bg-ffffff)` etc. instead of raw hex codes.
+- `src/theme/theme-overrides.css` holds hand-written dark/light fixes (translucent panels, inverse chips, input fills).
+- `src/theme/ThemeContext.jsx` provides `useTheme()`; Monaco and the MUI components read it.
+
+When you add UI, reuse an existing token (search `theme-colors.css` for a close colour) instead of a new hex code. If you do add a new colour, add it to both blocks of `theme-colors.css` and check it in both themes; plain text on a coloured surface should keep at least a 4.5:1 contrast ratio.
+
 ## Contributing
 
 1. Fork the repo and create your branch.

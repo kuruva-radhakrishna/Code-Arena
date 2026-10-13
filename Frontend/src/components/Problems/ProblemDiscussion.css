@@ -2,30 +2,30 @@
   max-width: 900px;
   margin: 40px auto;
   padding: 28px 22px;
-  background: #fff;
+  background: var(--bg-ffffff);
   border-radius: 14px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.06);
-  color: #222;
+  color: var(--tx-222222);
 }
 
 .problem-discussion h2, .problem-discussion h3 {
   font-weight: 700;
   margin-bottom: 16px;
-  color: #222;
+  color: var(--tx-222222);
 }
 
 .problem-discussion p {
   margin-bottom: 14px;
   line-height: 1.7;
-  color: #333;
+  color: var(--tx-333333);
 }
 
 .problem-discussion .comment {
-  background: #f5f7fa;
+  background: var(--bg-f5f7fa);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 14px;
-  color: #444;
+  color: var(--tx-444444);
   font-size: 0.98rem;
 }
 
@@ -46,21 +46,21 @@
 .discussion-form textarea {
   resize: none;
   border-radius: 8px;
-  border: 1px solid #e3eafc;
+  border: 1px solid var(--bd-e3eafc);
   padding: 10px 12px;
   font-size: 1rem;
   min-height: 60px;
-  background: #f9fafc;
-  color: #222;
+  background: var(--bg-f9fafc);
+  color: var(--tx-222222);
   transition: border 0.18s;
 }
 .discussion-form textarea:focus {
   outline: none;
-  border: 1.5px solid #1976d2;
+  border: 1.5px solid var(--bd-1976d2);
 }
 .discussion-form button {
   align-self: flex-end;
-  background: #1976d2;
+  background: var(--bg-1976d2);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -71,11 +71,11 @@
   transition: background 0.18s;
 }
 .discussion-form button:disabled {
-  background: #b0c4de;
+  background: var(--bg-b0c4de);
   cursor: not-allowed;
 }
 .error-msg {
-  color: #e53935;
+  color: var(--tx-e53935);
   font-size: 0.98rem;
   margin-top: 4px;
 }
@@ -83,11 +83,11 @@
   margin-top: 10px;
 }
 .comment {
-  background: #f5f7fa;
+  background: var(--bg-f5f7fa);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 14px;
-  color: #444;
+  color: var(--tx-444444);
   font-size: 0.98rem;
   box-shadow: 0 1px 4px rgba(25,118,210,0.04);
 }
@@ -98,7 +98,7 @@
   margin-bottom: 4px;
 }
 .problem-discussion .user-avatar {
-  background: #1976d2;
+  background: var(--bg-1976d2);
   color: #fff;
   border-radius: 50%;
   width: 32px;
@@ -112,10 +112,10 @@
 }
 .user-name {
   font-weight: 600;
-  color: #1976d2;
+  color: var(--tx-1976d2);
 }
 .user-email {
-  color: #888;
+  color: var(--tx-888888);
   font-size: 0.97rem;
 }
 .comment-content {

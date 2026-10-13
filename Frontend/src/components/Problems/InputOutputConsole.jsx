@@ -20,7 +20,7 @@ function InputOutputConsole({ inputValue, onInputChange, outputValue, isOutput =
           style: {
             fontFamily: 'Fira Mono, Consolas, monospace',
             fontSize: '1rem',
-            background: '#f5f7fa',
+            background: 'var(--bg-f5f7fa)',
             borderRadius: 8,
           }
         }}
@@ -38,7 +38,7 @@ function InputOutputConsole({ inputValue, onInputChange, outputValue, isOutput =
           style: {
             fontFamily: 'Fira Mono, Consolas, monospace',
             fontSize: '1rem',
-            background: '#f5f7fa',
+            background: 'var(--bg-f5f7fa)',
             borderRadius: 8,
           }
         }}

@@ -2,7 +2,7 @@
   max-width: 900px;
   margin: 32px auto 32px 0;
   padding: 24px;
-  background: #fff;
+  background: var(--bg-ffffff);
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.06);
   overflow-x: auto;
@@ -21,11 +21,11 @@
 }
 
 .problem-submissions th {
-  background: #f5f7fa;
-  color: #222;
+  background: var(--bg-f5f7fa);
+  color: var(--tx-222222);
   font-weight: 600;
   font-size: 1.02rem;
-  border-bottom: 2px solid #f0f1f3;
+  border-bottom: 2px solid var(--bd-f0f1f3);
 }
 
 .problem-submissions tr {
@@ -33,18 +33,18 @@
 }
 
 .problem-submissions tr:hover {
-  background: #f9fafc;
+  background: var(--bg-f9fafc);
 }
 
 .problem-submissions td {
   font-size: 0.98rem;
-  color: #333;
-  border-bottom: 1px solid #f0f1f3;
+  color: var(--tx-333333);
+  border-bottom: 1px solid var(--bd-f0f1f3);
 }
 
 .view-code-link {
-  background: #ffa116;
-  color: #222;
+  background: var(--bg-ffa116);
+  color: var(--tx-222222);
   padding: 6px 16px;
   border-radius: 6px;
   text-decoration: none;
@@ -56,7 +56,7 @@
 }
 
 .view-code-link:hover {
-  background: #ff9800;
+  background: var(--bg-ff9800);
   color: #fff;
   text-decoration: underline;
 }
@@ -86,8 +86,8 @@
 .ps-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .ps-head h3 { margin: 0; font-size: 1.1rem; }
 .pv2 .ps-refresh {
-  margin: 0; padding: 4px 12px; background: transparent; color: #6b7280;
-  border: 1px solid #e5e7eb; font-size: 0.8rem;
+  margin: 0; padding: 4px 12px; background: transparent; color: var(--tx-6b7280);
+  border: 1px solid var(--bd-e5e7eb); font-size: 0.8rem;
 }
 .ps-scroll { overflow-x: auto; }
 .ps-verdict {
@@ -98,8 +98,8 @@
   font-weight: 700;
   white-space: nowrap;
 }
-.ps-ok   { background: #e6f4ea; color: #1e7e34; }
-.ps-bad  { background: #fdeded; color: #c62828; }
-.ps-warn { background: #fff4e0; color: #b36b00; }
-.pv2 .view-code-link { padding: 3px 12px; font-size: 0.88rem; color: #222; }
+.ps-ok   { background: var(--bg-e6f4ea); color: var(--tx-1e7e34); }
+.ps-bad  { background: var(--bg-fdeded); color: var(--tx-c62828); }
+.ps-warn { background: var(--bg-fff4e0); color: var(--tx-b36b00); }
+.pv2 .view-code-link { padding: 3px 12px; font-size: 0.88rem; color: var(--tx-222222); }
 .pv2 .view-code-link:hover { text-decoration: none; }

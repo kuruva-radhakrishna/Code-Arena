@@ -301,7 +301,7 @@ const AIChat = () => {
     >
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div className="ai-chat-header">
-          <ForumIcon style={{ marginRight: 8, color: '#1976d2' }} />
+          <ForumIcon style={{ marginRight: 8, color: 'var(--tx-1976d2)' }} />
           <span style={{ fontWeight: 600 }}>AI Chat</span>
           <div className="ai-chat-float-controls">
             {!expanded ? (
@@ -371,7 +371,7 @@ const AIChat = () => {
                 </div>
                 <div className="message-content">
                   <div className="message-text">
-                    <CircularProgress size={20} style={{ color: '#1976d2' }} />
+                    <CircularProgress size={20} style={{ color: 'var(--tx-1976d2)' }} />
                     <span style={{ marginLeft: '10px' }}>AI is thinking...</span>
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './NavBar.css';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -16,6 +17,7 @@ function Chevron() {
 
 function Nav() {
   const { user, setUser } = useAuth();
+  const { theme, toggle: toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [menu, setMenu] = useState(null); // 'create' | 'user' | 'mobile' | null
@@ -71,6 +73,19 @@ function Nav() {
         <div className="nv-spacer" />
 
         <div className="nv-right">
+          <button
+            type="button"
+            className="nv-theme"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            title={theme === 'dark' ? 'Light theme' : 'Dark theme'}
+          >
+            {theme === 'dark' ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M18.7 5.3l-1.9 1.9M7.2 16.8l-1.9 1.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 14.6A8.6 8.6 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
+            )}
+          </button>
           {user ? (
             <>
               {isAdmin && (

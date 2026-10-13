@@ -134,24 +134,24 @@ function EditContest() {
   );
 
   return (
-    <div className="new-contest-form-container" style={{ maxWidth: 600, margin: '40px auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(25,118,210,0.08)', padding: 32 }}>
+    <div className="new-contest-form-container" style={{ maxWidth: 600, margin: '40px auto', background: 'var(--bg-ffffff)', borderRadius: 12, boxShadow: '0 2px 12px rgba(25,118,210,0.08)', padding: 32 }}>
       <h2 style={{ marginBottom: 24 }}>Edit Contest</h2>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 18 }}>
           <label>Contest Title</label><br />
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} required style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }} />
+          <input type="text" value={title} onChange={e => setTitle(e.target.value)} required style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid var(--bd-cccccc)' }} />
         </div>
         <div style={{ marginBottom: 18 }}>
           <label>Start Time</label><br />
-          <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} required style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }} />
+          <input type="datetime-local" value={startTime} onChange={e => setStartTime(e.target.value)} required style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid var(--bd-cccccc)' }} />
         </div>
         <div style={{ marginBottom: 18 }}>
           <label>End Time</label><br />
-          <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} required style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc' }} />
+          <input type="datetime-local" value={endTime} onChange={e => setEndTime(e.target.value)} required style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid var(--bd-cccccc)' }} />
         </div>
         <div style={{ marginBottom: 18 }}>
           <label>Select Problems (at least 3)</label><br />
-          <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8, padding: 8, background: '#fafbfc', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ maxHeight: 260, overflowY: 'auto', border: '1px solid var(--bd-eeeeee)', borderRadius: 8, padding: 8, background: 'var(--bg-fafbfc)', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {allProblems.length === 0 && <div>No problems found.</div>}
             {allProblems.map(problem => (
               <div key={problem._id} style={{
@@ -177,7 +177,7 @@ function EditContest() {
                   />
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.97rem', color: '#1976d2', marginBottom: 4 }}>{problem.problemName || problem._id}</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.97rem', color: 'var(--tx-1976d2)', marginBottom: 4 }}>{problem.problemName || problem._id}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
                     <span className={`difficulty-box ${problem.difficulty?.toLowerCase()}`} style={{ fontSize: '0.75rem', padding: '3px 10px', marginRight: 4 }}>{problem.difficulty}</span>
                     {problem.topics && problem.topics.length > 0 && (
@@ -195,7 +195,7 @@ function EditContest() {
                     min={1}
                     value={problemPoints[problem._id] || 4}
                     onChange={e => handlePointsChange(problem._id, e.target.value)}
-                    style={{ width: 70, padding: 6, borderRadius: 6, border: '1.5px solid #1976d2', fontWeight: 600, fontSize: '1rem', background: '#f5f7fa', color: '#1976d2', outline: 'none', marginLeft: 8, alignSelf: 'flex-start' }}
+                    style={{ width: 70, padding: 6, borderRadius: 6, border: '1.5px solid var(--bd-1976d2)', fontWeight: 600, fontSize: '1rem', background: 'var(--bg-f5f7fa)', color: 'var(--tx-1976d2)', outline: 'none', marginLeft: 8, alignSelf: 'flex-start' }}
                     placeholder="Points"
                   />
                 )}
@@ -205,11 +205,11 @@ function EditContest() {
         </div>
         <div style={{ marginBottom: 18 }}>
           <label>Contest Description</label><br />
-          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={5} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ccc', resize: 'vertical' }} />
-          <button type="button" onClick={handleAIComplete} disabled={aiLoading} style={{ marginTop: 8, background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontWeight: 600, cursor: 'pointer' }}>{aiLoading ? 'Generating...' : 'AI Complete'}</button>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={5} style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid var(--bd-cccccc)', resize: 'vertical' }} />
+          <button type="button" onClick={handleAIComplete} disabled={aiLoading} style={{ marginTop: 8, background: 'var(--bg-1976d2)', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontWeight: 600, cursor: 'pointer' }}>{aiLoading ? 'Generating...' : 'AI Complete'}</button>
         </div>
         {error && <div style={{ color: 'red', marginBottom: 12 }}>{error}</div>}
-        <button type="submit" style={{ background: '#1976d2', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 22px', fontWeight: 600, fontSize: '1.08rem', cursor: 'pointer' }}>Update Contest</button>
+        <button type="submit" style={{ background: 'var(--bg-1976d2)', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 22px', fontWeight: 600, fontSize: '1.08rem', cursor: 'pointer' }}>Update Contest</button>
       </form>
     </div>
   );

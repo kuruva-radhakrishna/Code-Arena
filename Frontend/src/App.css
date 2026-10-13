@@ -1,5 +1,5 @@
 body {
     margin: 0;
     font-family: 'Roboto', sans-serif;
-    background-color: #f8f9fa; /* optional: subtle background */
+    background-color: var(--bg-f8f9fa); /* optional: subtle background */
 }

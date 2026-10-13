@@ -60,7 +60,7 @@ function ProblemSubmissions({ submissions, refreshSubmissions }) {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center', color: '#6b7280' }}>No submissions yet — run your code and hit Submit.</td>
+                                <td colSpan="5" style={{ textAlign: 'center', color: 'var(--tx-6b7280)' }}>No submissions yet — run your code and hit Submit.</td>
                             </tr>
                         )}
                     </tbody>

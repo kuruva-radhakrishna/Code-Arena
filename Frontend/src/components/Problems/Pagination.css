@@ -8,7 +8,7 @@
 }
 
 .pager-info {
-  color: #6b7280;
+  color: var(--tx-6b7280);
   font-size: 0.9rem;
   min-width: 110px;
 }
@@ -25,9 +25,9 @@
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  color: #374151;
+  border: 1px solid var(--bd-e5e7eb);
+  background: var(--bg-ffffff);
+  color: var(--tx-374151);
   border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -36,15 +36,15 @@
 }
 
 .pager .pager-btn:hover:not(:disabled):not(.active) {
-  background: #fff7e6;
-  border-color: #ffa116;
-  color: #b36b00;
+  background: var(--bg-fff7e6);
+  border-color: var(--bd-ffa116);
+  color: var(--tx-b36b00);
 }
 
 .pager .pager-btn.active {
-  background: #ffa116;
-  border-color: #ffa116;
-  color: #fff;
+  background: var(--bg-ffa116);
+  border-color: var(--bd-ffa116);
+  color: #1f1300;
 }
 
 .pager .pager-btn:disabled {
@@ -55,15 +55,15 @@
 .pager-gap {
   width: 24px;
   text-align: center;
-  color: #9ca3af;
+  color: var(--tx-9ca3af);
 }
 
 .pager-size select {
   height: 36px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--bd-e5e7eb);
   border-radius: 8px;
-  background: #fff;
-  color: #374151;
+  background: var(--bg-ffffff);
+  color: var(--tx-374151);
   padding: 0 10px;
   font-size: 0.9rem;
   cursor: pointer;

@@ -19,11 +19,11 @@ function ContestProblemDescription({ problem }) {
             </div>
             <div style={{ marginBottom: 18 }}>
                 <strong>Sample Input:</strong>
-                <pre style={{ background: '#f6f8fa', padding: 10, borderRadius: 6 }}>{problem.TestCases && problem.TestCases[0]?.input}</pre>
+                <pre style={{ background: 'var(--bg-f6f8fa)', padding: 10, borderRadius: 6 }}>{problem.TestCases && problem.TestCases[0]?.input}</pre>
             </div>
             <div style={{ marginBottom: 18 }}>
                 <strong>Sample Output:</strong>
-                <pre style={{ background: '#f6f8fa', padding: 10, borderRadius: 6 }}>{problem.TestCases && problem.TestCases[0]?.output}</pre>
+                <pre style={{ background: 'var(--bg-f6f8fa)', padding: 10, borderRadius: 6 }}>{problem.TestCases && problem.TestCases[0]?.output}</pre>
             </div>
         </div>
     );

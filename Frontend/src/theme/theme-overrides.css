@@ -1,0 +1,47 @@
+/* Hand-written theme rules. The colours themselves live in the generated theme-colors.css. */
+
+:root { color-scheme: light; }
+[data-theme='dark'] { color-scheme: dark; }
+
+/* Page background always follows the theme, even before any component CSS loads */
+html { background: var(--bg-f8f9fa); }
+
+/* navbar theme switch */
+.nv .nv-theme {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nv .nv-theme:hover { background: rgba(255, 255, 255, 0.24); }
+
+/* dark: translucent panels and "inverse" chips that cannot be derived from a single colour */
+[data-theme='dark'] .cv-clock { background: rgba(22, 27, 34, 0.85); }
+
+[data-theme='dark'] .cl .cl-tab.active,
+[data-theme='dark'] .pv2 .pvc-q.active {
+  background: #e6edf3;
+  border-color: #e6edf3;
+  color: #0d1117;
+}
+[data-theme='dark'] .cl .cl-tab.active span,
+[data-theme='dark'] .pv2 .pvc-q.active small {
+  background: rgba(13, 17, 23, 0.14);
+  color: #0d1117;
+}
+
+/* light theme: a little more contrast for small coloured labels on white (they were about 2.7:1) */
+html:not([data-theme='dark']) .ps { --ps-easy: #007f72; --ps-medium: #a86400; }
+html:not([data-theme='dark']) .pf { --pf-easy: #007f72; --pf-medium: #a86400; }
+html:not([data-theme='dark']) .nv .nv-avatar { color: #a86400; }
+
+/* dark: the chat input would otherwise get the browser's default grey */
+[data-theme='dark'] .ai-chat-input textarea { background: var(--bg-f8f9fb); color: var(--tx-1f2328); border-color: var(--bd-e6e8ec); }

@@ -60,8 +60,8 @@ function SubmissionCodeView() {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '30vh' }}>
         <div style={{
-          background: '#fff',
-          color: '#e53935',
+          background: 'var(--bg-ffffff)',
+          color: 'var(--tx-e53935)',
           padding: '32px 24px',
           borderRadius: '16px',
           boxShadow: '0 2px 16px rgba(25,118,210,0.08)',
@@ -92,7 +92,7 @@ function SubmissionCodeView() {
       <div>
         <b>Code:</b>
         <pre style={{
-          background: '#f5f7fa',
+          background: 'var(--bg-f5f7fa)',
           borderRadius: 8,
           padding: 16,
           fontFamily: 'Fira Mono, Consolas, monospace',

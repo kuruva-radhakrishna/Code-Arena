@@ -1,6 +1,6 @@
 .ptimer {
-  --tone: #2e7d32;
-  --tone-bg: #eef7ee;
+  --tone: var(--tx-2e7d32);
+  --tone-bg: var(--bg-eef7ee);
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -11,10 +11,10 @@
   background: var(--tone-bg);
   transition: background 0.3s, border-color 0.3s;
 }
-.ptimer-ok   { --tone: #2e7d32; --tone-bg: #eef7ee; }
-.ptimer-warn { --tone: #e08600; --tone-bg: #fff6e5; }
-.ptimer-over { --tone: #d32f2f; --tone-bg: #fdeded; }
-.ptimer-done { --tone: #1565c0; --tone-bg: #e8f1fb; }
+.ptimer-ok   { --tone: var(--tx-2e7d32); --tone-bg: var(--bg-eef7ee); }
+.ptimer-warn { --tone: var(--tx-e08600); --tone-bg: var(--bg-fff6e5); }
+.ptimer-over { --tone: var(--tx-d32f2f); --tone-bg: var(--bg-fdeded); }
+.ptimer-done { --tone: var(--tx-1565c0); --tone-bg: var(--bg-e8f1fb); }
 
 .ptimer-main {
   display: flex;
@@ -40,7 +40,7 @@
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #4b5563;
+  color: var(--tx-4b5563);
   font-size: 0.95rem;
   line-height: 1;
   cursor: pointer;
@@ -58,7 +58,7 @@
   gap: 10px;
   font-size: 0.74rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--tx-4b5563);
 }
 .ptimer-status { color: var(--tone); }
 
@@ -76,16 +76,16 @@
 }
 
 .ptimer-show {
-  border: 1px dashed #cbd5e1;
-  background: #fff;
-  color: #475569;
+  border: 1px dashed var(--bd-cbd5e1);
+  background: var(--bg-ffffff);
+  color: var(--tx-475569);
   border-radius: 999px;
   padding: 6px 14px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
 }
-.ptimer-show:hover { border-color: #ffa116; color: #b36b00; }
+.ptimer-show:hover { border-color: var(--bd-ffa116); color: var(--tx-b36b00); }
 
 /* compact sizing */
 .ptimer { min-width: 168px; padding: 5px 10px 7px; gap: 3px; border-radius: 10px; }

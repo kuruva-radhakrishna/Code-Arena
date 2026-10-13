@@ -176,7 +176,7 @@ function EditProblem() {
         <label>Topics
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
             {topics.map(topic => (
-              <span key={topic} className="topic-tag" style={{ background: '#1976d2', color: '#fff', borderRadius: 12, padding: '4px 12px', marginRight: 4, fontWeight: 500 }}>
+              <span key={topic} className="topic-tag" style={{ background: 'var(--bg-1976d2)', color: '#fff', borderRadius: 12, padding: '4px 12px', marginRight: 4, fontWeight: 500 }}>
                 {topic}
                 <button type="button" style={{ marginLeft: 6, background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 700 }} onClick={() => removeTopic(topic)}>&times;</button>
               </span>

@@ -1,15 +1,15 @@
 function getColor(verdict) {
   if (!verdict) {
-    return '#888';
+    return 'var(--tx-888888, #888)';
   }
   const v = verdict.toLowerCase();
   if (v.includes('accept')) {
-    return '#2e7d32'; // green
+    return 'var(--tx-2e7d32, #2e7d32)'; // green
   }
   if (v.includes('wrong') || v.includes('error') || v.includes('runtime')) {
-    return '#d32f2f'; // red
+    return 'var(--tx-d32f2f, #d32f2f)'; // red
   }
-  return '#ffa116'; // yellow/orange
+  return 'var(--tx-ffa116, #ffa116)'; // yellow/orange
 }
 
 function Verdict({ verdicts }) {
@@ -32,7 +32,7 @@ function Verdict({ verdicts }) {
                 key={index}
                 className="verdict"
                 style={{
-                  background: '#f5f7fa',
+                  background: 'var(--bg-f5f7fa)',
                   color: getColor(verdictText),
                   padding: '10px 14px',
                   borderRadius: 8,
@@ -52,8 +52,8 @@ function Verdict({ verdicts }) {
         <div
           className="verdict"
           style={{
-            background: '#f5f7fa',
-            color: '#888',
+            background: 'var(--bg-f5f7fa)',
+            color: 'var(--tx-888888)',
             padding: '10px 18px',
             borderRadius: 8,
             fontWeight: 600,

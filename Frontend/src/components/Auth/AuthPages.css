@@ -1,14 +1,14 @@
 /* Login and sign-up pages, scoped under .au */
 .au {
-  --au-border: #dfe3e8;
-  --au-text: #1f2328;
-  --au-muted: #6b7280;
-  --au-accent: #ffa116;
+  --au-border: var(--bd-dfe3e8);
+  --au-text: var(--tx-1f2328);
+  --au-muted: var(--tx-6b7280);
+  --au-accent: var(--tx-ffa116);
   box-sizing: border-box;
   min-height: calc(100vh - 58px);
   display: grid;
   grid-template-columns: minmax(320px, 5fr) 6fr;
-  background: #f6f8fb;
+  background: var(--bg-f6f8fb);
   color: var(--au-text);
   text-align: left;
   font-size: 14px;
@@ -25,7 +25,7 @@
   color: #fff;
   background:
     radial-gradient(circle at 15% 10%, rgba(255, 161, 22, 0.28), transparent 45%),
-    linear-gradient(160deg, #0f4c9c 0%, #1976d2 55%, #2b8be8 100%);
+    linear-gradient(160deg, var(--bg-0f4c9c) 0%, var(--bg-1976d2) 55%, var(--bg-2b8be8) 100%);
   overflow: hidden;
 }
 .au-brand::after {
@@ -40,7 +40,7 @@
 .au-logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 36px; color: #fff; text-decoration: none; }
 .au-logo img { height: 38px; }
 .au-logo span { font-size: 1.45rem; font-weight: 800; }
-.au-logo b { color: #ffa116; }
+.au-logo b { color: var(--tx-ffa116); }
 .au-brand h2 { margin: 0 0 10px; font-size: clamp(1.6rem, 2.6vw, 2.2rem); font-weight: 800; line-height: 1.15; }
 .au-brand > p { margin: 0 0 30px; max-width: 420px; font-size: 1rem; line-height: 1.55; color: rgba(255, 255, 255, 0.85); }
 .au-brand ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; position: relative; z-index: 1; }
@@ -58,7 +58,7 @@
   width: 100%;
   max-width: 440px;
   padding: 34px 34px 28px;
-  background: #fff;
+  background: var(--bg-ffffff);
   border: 1px solid var(--au-border);
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(15, 23, 42, 0.07);
@@ -67,25 +67,25 @@
 .au-sub { margin: 6px 0 22px; color: var(--au-muted); }
 
 .au-field { margin-bottom: 16px; }
-.au-field label { display: block; margin-bottom: 6px; font-weight: 650; font-size: 0.86rem; color: #374151; }
+.au-field label { display: block; margin-bottom: 6px; font-weight: 650; font-size: 0.86rem; color: var(--tx-374151); }
 .au-field input {
   width: 100%;
   height: 44px;
   padding: 0 14px;
   border: 1.5px solid var(--au-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-ffffff);
   font: inherit;
   font-size: 0.95rem;
   color: var(--au-text);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.au-field input::placeholder { color: #a3aab5; }
+.au-field input::placeholder { color: var(--tx-a3aab5); }
 .au-field input:focus { border-color: var(--au-accent); box-shadow: 0 0 0 3px rgba(255, 161, 22, 0.18); }
-.au-field.has-error input { border-color: #e5484d; }
+.au-field.has-error input { border-color: var(--bd-e5484d); }
 .au-field.has-error input:focus { box-shadow: 0 0 0 3px rgba(229, 72, 77, 0.15); }
-.au-error { display: block; margin-top: 5px; font-size: 0.78rem; color: #d92d33; }
+.au-error { display: block; margin-top: 5px; font-size: 0.78rem; color: var(--tx-d92d33); }
 .au-hint { display: block; margin-top: 5px; font-size: 0.78rem; color: var(--au-muted); }
 
 .au-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -95,20 +95,20 @@
 .au .au-show {
   position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
   height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent;
-  font: inherit; font-size: 0.8rem; font-weight: 700; color: #8a5300; cursor: pointer;
+  font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--tx-8a5300); cursor: pointer;
 }
-.au .au-show:hover { background: #fff3da; }
+.au .au-show:hover { background: var(--bg-fff3da); }
 
 .au-meter { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 0.78rem; color: var(--au-muted); }
 .au-meter-bars { display: flex; gap: 4px; flex: 1; }
-.au-meter-bars i { flex: 1; height: 5px; border-radius: 999px; background: #e9ecf0; }
-.au-meter-bars i.on.s1 { background: #e5484d; }
-.au-meter-bars i.on.s2 { background: #f5a524; }
-.au-meter-bars i.on.s3 { background: #7cc24a; }
-.au-meter-bars i.on.s4 { background: #17a34a; }
+.au-meter-bars i { flex: 1; height: 5px; border-radius: 999px; background: var(--bg-e9ecf0); }
+.au-meter-bars i.on.s1 { background: var(--bg-e5484d); }
+.au-meter-bars i.on.s2 { background: var(--bg-f5a524); }
+.au-meter-bars i.on.s3 { background: var(--bg-7cc24a); }
+.au-meter-bars i.on.s4 { background: var(--bg-17a34a); }
 
-.au-alert { margin: 4px 0 14px; padding: 10px 12px; border-radius: 10px; background: #fdeded; border: 1px solid #f5c2c2; color: #b42318; font-size: 0.86rem; font-weight: 550; }
-.au-notice { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: #e8f1fb; border: 1px solid #c3dcf6; color: #1b5aa6; font-size: 0.86rem; font-weight: 550; }
+.au-alert { margin: 4px 0 14px; padding: 10px 12px; border-radius: 10px; background: var(--bg-fdeded); border: 1px solid var(--bd-f5c2c2); color: var(--tx-b42318); font-size: 0.86rem; font-weight: 550; }
+.au-notice { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: var(--bg-e8f1fb); border: 1px solid var(--bd-c3dcf6); color: var(--tx-1b5aa6); font-size: 0.86rem; font-weight: 550; }
 
 .au .au-submit {
   display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -117,14 +117,14 @@
   font: inherit; font-size: 0.98rem; font-weight: 750; cursor: pointer;
   transition: background 0.15s, transform 0.05s;
 }
-.au .au-submit:hover:not(:disabled) { background: #ff9100; }
+.au .au-submit:hover:not(:disabled) { background: var(--bg-ff9100); }
 .au .au-submit:active:not(:disabled) { transform: translateY(1px); }
 .au .au-submit:disabled { opacity: 0.7; cursor: wait; }
 .au-spin { width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: au-rot 0.7s linear infinite; }
 @keyframes au-rot { to { transform: rotate(360deg); } }
 
 .au-foot { margin: 20px 0 0; text-align: center; color: var(--au-muted); }
-.au-foot a { color: #b36b00; font-weight: 700; text-decoration: none; }
+.au-foot a { color: var(--tx-b36b00); font-weight: 700; text-decoration: none; }
 .au-foot a:hover { text-decoration: underline; }
 
 /* ───── responsive ───── */
@@ -145,11 +145,11 @@
 /* ───── forgot / reset password ───── */
 .au-labelrow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .au-labelrow label { margin-bottom: 6px; }
-.au .au-forgot { font-size: 0.8rem; font-weight: 650; color: #b36b00; text-decoration: none; }
+.au .au-forgot { font-size: 0.8rem; font-weight: 650; color: var(--tx-b36b00); text-decoration: none; }
 .au .au-forgot:hover { text-decoration: underline; }
 .au-card .au-sub strong { color: var(--au-text); overflow-wrap: anywhere; }
-.au .au-secondary { background: #fff; border: 1.5px solid var(--au-border); color: #374151; }
-.au .au-secondary:hover:not(:disabled) { background: #fff7e6; border-color: var(--au-accent); }
+.au .au-secondary { background: var(--bg-ffffff); border: 1.5px solid var(--au-border); color: var(--tx-374151); }
+.au .au-secondary:hover:not(:disabled) { background: var(--bg-fff7e6); border-color: var(--au-accent); }
 .au .au-linkbtn { text-decoration: none; }
-.au .au-textbtn { display: block; width: 100%; margin-top: 14px; padding: 8px; border: 0; background: transparent; font: inherit; font-weight: 650; color: #b36b00; cursor: pointer; }
+.au .au-textbtn { display: block; width: 100%; margin-top: 14px; padding: 8px; border: 0; background: transparent; font: inherit; font-weight: 650; color: var(--tx-b36b00); cursor: pointer; }
 .au .au-textbtn:hover { text-decoration: underline; }

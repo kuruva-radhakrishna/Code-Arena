@@ -1,7 +1,9 @@
 import React from 'react';
 import MonacoEditor from '@monaco-editor/react';
+import { useTheme } from '../../theme/ThemeContext';
 
 function CodeEditor({ value, onChange, language = 'cpp', height = '300px', showLabel = true }) {
+  const { theme } = useTheme();
   return (
     <div style={{ width: '100%', height: showLabel ? undefined : height, minHeight: 0 }}>
       {showLabel && (
@@ -9,7 +11,7 @@ function CodeEditor({ value, onChange, language = 'cpp', height = '300px', showL
           display: 'block',
           marginBottom: 6,
           fontWeight: 500,
-          color: '#888',
+          color: 'var(--tx-888888)',
           fontSize: '1rem'
         }}>
           {language.toUpperCase()} Code
@@ -21,7 +23,7 @@ function CodeEditor({ value, onChange, language = 'cpp', height = '300px', showL
         language={language}
         value={value}
         onChange={(v) => onChange(v ?? '')}
-        theme="vs-light"
+        theme={theme === 'dark' ? 'vs-dark' : 'vs-light'}
         options={{
           fontSize: 13,
           minimap: { enabled: false },
