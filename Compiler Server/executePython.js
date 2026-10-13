@@ -8,7 +8,7 @@ const executePython = function (filePath, inputFilePath) {
 
     return withSlot(async () => {
         try {
-            return await execute(`${PYTHON} "${filePath}" < "${inputFilePath}"`, 'python');
+            return await execute(`${PYTHON} "${filePath}" < "${inputFilePath}"`, 'python', { virtualMemory: true });
         } catch (err) {
             // a Python syntax error is reported on its own, like a compile error
             if (err.type === 'runtime' && /SyntaxError|IndentationError|TabError/.test(err.message || '')) {

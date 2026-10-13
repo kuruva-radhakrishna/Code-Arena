@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { withSlot, compile, execute } = require('./sandbox');
+const { withSlot, compile, execute, memoryLimitMb } = require('./sandbox');
 
 // filePath is <jobdir>/Main.java (see generateJavaFile)
 const executeJava = function (filePath, inputFilePath) {
@@ -13,7 +13,9 @@ const executeJava = function (filePath, inputFilePath) {
 
     return withSlot(async () => {
         await compile(`javac -d "${jobDir}" "${filePath}"`);
-        return execute(`java -Xmx256m -cp "${jobDir}" Main < "${inputFilePath}"`, 'java');
+        // heap stays below the limit: the JVM adds metaspace, thread stacks and code cache on top of it
+        const heapMb = Math.max(64, Math.floor(memoryLimitMb('java') * 0.75));
+        return execute(`java -Xmx${heapMb}m -cp "${jobDir}" Main < "${inputFilePath}"`, 'java');
     }).finally(cleanup);
 };
 

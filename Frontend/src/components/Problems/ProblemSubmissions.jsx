@@ -39,6 +39,8 @@ function ProblemSubmissions({ submissions, refreshSubmissions }) {
                             <th>#</th>
                             <th>Language</th>
                             <th>Verdict</th>
+                            <th>Runtime</th>
+                            <th>Memory</th>
                             <th>Submitted</th>
                             <th>Code</th>
                         </tr>
@@ -52,6 +54,8 @@ function ProblemSubmissions({ submissions, refreshSubmissions }) {
                                     <td>
                                         <span className={`ps-verdict ps-${verdictTone(submission.verdict)}`}>{submission.verdict}</span>
                                     </td>
+                                    <td>{submission.executionTime ? `${submission.executionTime} ms` : '—'}</td>
+                                    <td>{submission.memoryUsed ? `${submission.memoryUsed} MB` : '—'}</td>
                                     <td>{formatFormalDate(submission.submittedAt)}</td>
                                     <td>
                                         <Link to={`/submission/${submission._id}`} className="view-code-link">View</Link>
@@ -60,7 +64,7 @@ function ProblemSubmissions({ submissions, refreshSubmissions }) {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center', color: 'var(--tx-6b7280)' }}>No submissions yet — run your code and hit Submit.</td>
+                                <td colSpan="7" style={{ textAlign: 'center', color: 'var(--tx-6b7280)' }}>No submissions yet — run your code and hit Submit.</td>
                             </tr>
                         )}
                     </tbody>

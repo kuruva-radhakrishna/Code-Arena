@@ -58,10 +58,15 @@ exports.createSubmission = async (req, res) => {
             return res.status(404).json({ message: "Problem not found" });
         }
 
+        let maxTimeMs = 0;
+        let maxMemoryKb = 0;
         for (const tc of problem.TestCases) {
             const result = { data: await runOnCompiler({ code, language, input: tc.input }) };
 
             const output = result.data.output?.output;
+            const run = result.data.output;
+            if (run && Number(run.timeMs) > maxTimeMs) maxTimeMs = Number(run.timeMs);
+            if (run && run.memoryKb > maxMemoryKb) maxMemoryKb = run.memoryKb;
 
             if (output !== undefined) {
                 if (output.trim() === tc.output.trim()) {
@@ -89,6 +94,8 @@ exports.createSubmission = async (req, res) => {
 
         const n = verdicts.length;
         newSubmission.verdict = verdicts[n - 1] || 'Unknown';
+        if (maxTimeMs) newSubmission.executionTime = Math.round(maxTimeMs);
+        if (maxMemoryKb) newSubmission.memoryUsed = Math.round(maxMemoryKb / 1024);
 
         const submissionResult = await Submission.create(newSubmission);
 

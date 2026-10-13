@@ -100,6 +100,7 @@ app.post('/run', async (req, res) => {
         if (type === 'syntax') return res.json({ errorType: 'Compilation Error', error });
         if (type === 'runtime') return res.json({ errorType: 'Runtime Error', error });
         if (type === 'timeout') return res.json({ errorType: 'Time Limit Exceeded', error: (err && err.message) || '' });
+        if (type === 'memory') return res.json({ errorType: 'Memory Limit Exceeded', error: (err && err.message) || '' });
         console.error('Unexpected compiler failure:', err);
         return res.status(500).json({ errorType: 'Internal Error', error: 'The code runner failed unexpectedly. Please try again.' });
     }

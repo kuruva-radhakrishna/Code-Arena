@@ -17,7 +17,7 @@ const executeC = function (filePath, inputFilePath) {
 
     return withSlot(async () => {
         await compile(`gcc -O2 "${filePath}" -o "${outputFilePath}" -lm`);
-        return execute(`"${outputFilePath}" < "${inputFilePath}"`, 'c');
+        return execute(`"${outputFilePath}" < "${inputFilePath}"`, 'c', { virtualMemory: true });
     }).finally(cleanup);
 };
 

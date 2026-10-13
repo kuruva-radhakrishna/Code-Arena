@@ -114,10 +114,15 @@ exports.contestSubmission = async (req, res) => {
 
         // Run test cases
         const verdicts = [];
+        let maxTimeMs = 0;
+        let maxMemoryKb = 0;
         for (const tc of problem.TestCases) {
             const result = { data: await runOnCompiler({ code, language, input: tc.input }) };
 
             const output = result.data.output?.output;
+            const run = result.data.output;
+            if (run && Number(run.timeMs) > maxTimeMs) maxTimeMs = Number(run.timeMs);
+            if (run && run.memoryKb > maxMemoryKb) maxMemoryKb = run.memoryKb;
             if (output !== undefined) {
 
                 if (output.trim() === tc.output.trim()) {
@@ -135,6 +140,8 @@ exports.contestSubmission = async (req, res) => {
 
         const verdict = verdicts[verdicts.length - 1] || 'Unknown';
         newSubmission.verdict = verdict;
+        if (maxTimeMs) newSubmission.executionTime = Math.round(maxTimeMs);
+        if (maxMemoryKb) newSubmission.memoryUsed = Math.round(maxMemoryKb / 1024);
 
         // Save the submission
         const savedSubmission = await Submission.create(newSubmission);
