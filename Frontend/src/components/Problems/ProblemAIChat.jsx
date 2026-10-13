@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProblemAIChat.css';
 
@@ -124,7 +125,7 @@ function ProblemAIChat({ problemId, getCode, language }) {
           <div key={m.id} className={`ptutor-msg ${m.role}${m.error ? ' error' : ''}`}>
             <div className="ptutor-bubble">
               {m.role === 'assistant' && !m.error ? (
-                <ReactMarkdown>{m.content}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
               ) : (
                 <p>{m.content}</p>
               )}

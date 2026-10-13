@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./ContestPage.css";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useAuth } from "../../contexts/AuthContext";
 import { formatCountdown } from "../../utils/countdown";
@@ -237,7 +238,7 @@ function ContestView({ contestId: contestIdProp }) {
                     <section className="cv-card">
                         <h3>About</h3>
                         <div className="cv-markdown">
-                            <ReactMarkdown>{contest.description || 'No description provided.'}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{contest.description || 'No description provided.'}</ReactMarkdown>
                         </div>
                     </section>
                     <section className="cv-card">

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import axios from 'axios';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
-import AuthShell, { Field, PasswordInput } from './AuthShell';
+import AuthShell, { Field, PasswordInput, StrengthMeter } from './AuthShell';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,16 +13,6 @@ const RULES = {
     email: (v) => (!/^\S+@\S+\.\S+$/.test(v.trim()) ? 'Enter a valid email address.' : ''),
     password: (v) => (v.length < 6 ? 'Use at least 6 characters.' : ''),
 };
-
-function passwordStrength(pw) {
-    let score = 0;
-    if (pw.length >= 6) score++;
-    if (pw.length >= 10) score++;
-    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-    if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
-    return Math.min(score, 4);
-}
-const STRENGTH_LABEL = ['Too short', 'Weak', 'Okay', 'Good', 'Strong'];
 
 function SignUp() {
     const [form, setForm] = useState({ firstname: '', lastname: '', email: '', password: '' });
@@ -37,7 +27,6 @@ function SignUp() {
         () => Object.fromEntries(Object.keys(RULES).map((k) => [k, RULES[k](form[k])])),
         [form]
     );
-    const strength = passwordStrength(form.password);
 
     if (user) return <Navigate to="/problems" replace />;
 
@@ -94,14 +83,7 @@ function SignUp() {
 
                 <Field label="Password" id="su-password" error={shown('password')}>
                     <PasswordInput id="su-password" value={form.password} onChange={set('password')} onBlur={blur('password')} autoComplete="new-password" invalid={!!shown('password')} placeholder="At least 6 characters" />
-                    {form.password && (
-                        <div className="au-meter" aria-live="polite">
-                            <div className="au-meter-bars">
-                                {[1, 2, 3, 4].map((n) => <i key={n} className={n <= strength ? `on s${strength}` : ''} />)}
-                            </div>
-                            <span>{STRENGTH_LABEL[strength]}</span>
-                        </div>
-                    )}
+                    <StrengthMeter password={form.password} />
                 </Field>
 
                 {serverError && <div className="au-alert" role="alert">{serverError}</div>}

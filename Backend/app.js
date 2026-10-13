@@ -191,7 +191,7 @@ app.get('/api/profile/summary', async (req, res) => {
       };
     });
     res.json({
-      user: req.user,
+      user: (({ hash, salt, password, ...safe }) => safe)(req.user.toObject ? req.user.toObject() : req.user),
       solvedStats,
       submissionStats: { total: totalSubmissions, accepted: acceptedSubmissions },
       problemTotals,

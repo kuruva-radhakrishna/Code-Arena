@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CircularProgress from '@mui/material/CircularProgress';
 import './ProblemView.css'; // legacy styles still shared with the contest problem page
 import './ProblemWorkspace.css';
@@ -441,7 +442,7 @@ function Workspace({ problemId, tab, setTab }) {
                                         {aiLoading ? (
                                             <p className="pv-muted"><span className="pv-spin pv-spin-dark" />Thinking…</p>
                                         ) : (
-                                            <ReactMarkdown>{aiPanel.text}</ReactMarkdown>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{aiPanel.text}</ReactMarkdown>
                                         )}
                                     </div>
                                 ) : (

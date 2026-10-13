@@ -208,6 +208,24 @@ npm run seed:verify                        # cross-check the reference solutions
 
 The first two test cases of each seeded problem are public (shown as examples); the rest are hidden.
 
+## Password reset email
+
+"Forgot password?" emails a one-time link that is valid for 30 minutes. Emails are sent over an HTTPS API (Render's free tier blocks SMTP), so set **one** provider on the **backend** service:
+
+| Variable | Brevo | Resend |
+| --- | --- | --- |
+| `EMAIL_PROVIDER` | `brevo` | `resend` |
+| API key | `BREVO_API_KEY` | `RESEND_API_KEY` |
+| `MAIL_FROM` | a sender you verified in Brevo, e.g. `CodeArena <you@gmail.com>` | `CodeArena <onboarding@resend.dev>` (only delivers to your own address until you verify a domain) |
+
+Also required: `FRONTEND_URL` (the public site URL, used to build the link in the email).
+
+Brevo's free plan (300 emails/day) lets you verify a single sender address and send to anyone, which is the easiest option for a personal project.
+
+With no provider configured nothing is sent. In development the email, including the link, is printed to the server log so you can try the flow locally; in production it is never logged.
+
+The endpoints are `POST /forgot-password` (5 requests / 15 min / IP) and `POST /reset-password` (10 / 15 min / IP). Only a SHA-256 hash of the token is stored, a link works once, and resetting a password signs the account out everywhere.
+
 ## Contributing
 
 1. Fork the repo and create your branch.

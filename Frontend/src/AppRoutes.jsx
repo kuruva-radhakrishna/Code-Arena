@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import SignUp from './components/Auth/SignUp';
 import Login from './components/Auth/Login';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Problems from './components/Problems/Problems';
 import Problem from './components/Problems/ProblemView';
 import ProblemDescription from './components/Problems/ProblemDescription';
@@ -37,6 +39,8 @@ function AppRoutes() {
           <Route path="/" element={<Home />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/problems" element={
             <ProtectedRoute><Problems /></ProtectedRoute>
           } />

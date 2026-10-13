@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import './ProblemDescription.css';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CircularProgress from '@mui/material/CircularProgress';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -76,7 +77,7 @@ function ProblemDescription({ problem: problemProp, showHints = true }) {
             )}
 
             <div className="pd-statement">
-                <ReactMarkdown>{problem.problemDescription}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{problem.problemDescription}</ReactMarkdown>
             </div>
 
             {examples.map((ex, i) => (

@@ -221,3 +221,8 @@
 .pv2 .ptutor-send:disabled { background: #f1f3f5; color: #9aa1a9; cursor: not-allowed; }
 
 .ptutor-list { scrollbar-width: thin; }
+
+/* markdown tables in tutor replies */
+.ptutor-bubble table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+.ptutor-bubble th, .ptutor-bubble td { padding: 5px 9px; border: 1px solid #e3e7ec; text-align: left; vertical-align: top; }
+.ptutor-bubble th { background: #eaf0f8; font-weight: 700; white-space: nowrap; }

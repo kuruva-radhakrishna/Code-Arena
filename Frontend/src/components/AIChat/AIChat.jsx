@@ -6,6 +6,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import SendIcon from '@mui/icons-material/Send';
 import PersonIcon from '@mui/icons-material/Person';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import CloseIcon from '@mui/icons-material/Close';
 import CropSquareIcon from '@mui/icons-material/CropSquare';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
@@ -334,7 +335,7 @@ const AIChat = () => {
                 <div className="message-content">
                   <div className="message-text">
                     {message.type === 'ai' ? (
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                     ) : (
                       message.content.split('\n').map((line, i) => <span key={i}>{line}<br /></span>)
                     )}

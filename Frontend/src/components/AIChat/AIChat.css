@@ -659,3 +659,23 @@
 .message.user .message-content { align-items: flex-end; text-align: left; }
 .message-text { width: fit-content; max-width: 100%; }
 .message.user .message-text { text-align: left; }
+
+/* markdown tables inside chat bubbles (rendered via remark-gfm) */
+.ai-chat-messages .message-text table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.ai-chat-messages .message-text th,
+.ai-chat-messages .message-text td {
+  padding: 5px 9px;
+  border: 1px solid #e3e7ec;
+  text-align: left;
+  vertical-align: top;
+}
+.ai-chat-messages .message-text th { background: #f3f6fb; font-weight: 700; white-space: nowrap; }
+.ai-chat-messages .message-text tr:nth-child(even) td { background: #fafbfd; }
+.ai-chat-messages .message-text td code { white-space: nowrap; }

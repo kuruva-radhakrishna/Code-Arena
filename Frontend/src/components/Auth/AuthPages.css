@@ -141,3 +141,15 @@
 @media (max-width: 480px) {
   .au-row { grid-template-columns: 1fr; gap: 0; }
 }
+
+/* ───── forgot / reset password ───── */
+.au-labelrow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.au-labelrow label { margin-bottom: 6px; }
+.au .au-forgot { font-size: 0.8rem; font-weight: 650; color: #b36b00; text-decoration: none; }
+.au .au-forgot:hover { text-decoration: underline; }
+.au-card .au-sub strong { color: var(--au-text); overflow-wrap: anywhere; }
+.au .au-secondary { background: #fff; border: 1.5px solid var(--au-border); color: #374151; }
+.au .au-secondary:hover:not(:disabled) { background: #fff7e6; border-color: var(--au-accent); }
+.au .au-linkbtn { text-decoration: none; }
+.au .au-textbtn { display: block; width: 100%; margin-top: 14px; padding: 8px; border: 0; background: transparent; font: inherit; font-weight: 650; color: #b36b00; cursor: pointer; }
+.au .au-textbtn:hover { text-decoration: underline; }

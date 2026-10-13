@@ -17,7 +17,7 @@ function Login() {
 
     // ProtectedRoute sends people here with the page they wanted and a short message.
     const from = location.state?.from;
-    const notice = location.state?.error;
+    const notice = location.state?.notice || location.state?.error;
 
     if (user) return <Navigate to={from?.pathname || "/"} replace />;
 
@@ -62,7 +62,7 @@ function Login() {
                         placeholder="you@example.com"
                     />
                 </Field>
-                <Field label="Password" id="login-password">
+                <Field label="Password" id="login-password" action={<Link to="/forgot-password" state={{ email }} className="au-forgot">Forgot password?</Link>}>
                     <PasswordInput id="login-password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Your password" />
                 </Field>
 
